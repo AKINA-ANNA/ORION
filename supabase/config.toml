@@ -433,3 +433,8 @@ entrypoint = "./functions/generate-onboarding-roadmap/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/mentor-chat/index.ts"
+
+[functions.onboarding-assessment]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/onboarding-assessment/index.ts"

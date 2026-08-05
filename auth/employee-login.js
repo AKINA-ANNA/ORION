@@ -340,7 +340,9 @@ if (loginForm) {
                 */
 
                 window.location.href =
-                    "../employee/employee-dashboard.html";
+                    employeeProfile.questionnaire_completed
+                        ? "../employee/employee-dashboard.html"
+                        : "../employee/questions.html";
 
 
             } catch (

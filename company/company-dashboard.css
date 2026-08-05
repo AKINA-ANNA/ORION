@@ -3046,6 +3046,22 @@ td {
     animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.site-logo-frame { display: inline-block; width: 30px; height: 30px; overflow: hidden; flex: 0 0 30px; }
+.site-logo-image { display: block; width: 76px; height: 76px; max-width: none; transform: translate(-23px, -17px); }
+
+.ob-assessment-toggle {
+    align-items: center;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    font-size: 0.8rem;
+    font-weight: 600;
+    gap: 8px;
+    padding: 2px 2px 0 40px;
+}
+
+.ob-assessment-toggle input { accent-color: #3B7A57; height: 15px; margin: 0; width: 15px; }
+
 /* =========================================
    PROJECTS
 ========================================= */

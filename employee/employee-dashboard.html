@@ -31,10 +31,7 @@
         <div class="sidebar-top">
 
             <a href="#" class="logo">
-                <div class="logo-mark">
-                    <span></span>
-                    <span></span>
-                </div>
+                <span class="site-logo-frame"><img class="site-logo-image" src="../logo.png" alt="ORION logo"></span>
 
                 <span>orion</span>
             </a>
@@ -578,17 +575,17 @@
 
                             <div>
 
-                                <span class="card-label">
+                                <span class="card-label" id="home-focus-label">
                                     TODAY
                                 </span>
 
-                                <h3>
+                                <h3 id="home-focus-title">
                                     Today's focus
                                 </h3>
 
                             </div>
 
-                            <button class="text-button"
+                            <button class="text-button" id="home-focus-action"
                                     data-page="onboarding">
 
                                 View roadmap →
@@ -2025,6 +2022,29 @@
 
 </div>
 
+
+<!-- ORION ASSESSMENT MODAL -->
+<div id="modal-onboarding-assessment" class="modal-backdrop hidden" style="display:none; align-items:center; justify-content:center; position:fixed; inset:0; z-index:1000; padding:20px;">
+    <div class="assessment-modal-card">
+        <div class="assessment-header">
+            <div>
+                <p class="assessment-eyebrow">ORION ASSESSMENT</p>
+                <h3 id="assessment-task-title">Task assessment</h3>
+            </div>
+            <button id="btn-close-assessment" class="assessment-close" type="button" aria-label="Close assessment">×</button>
+        </div>
+        <p id="assessment-focus-notice" class="assessment-progress-label">This assessment stays in this browser window. Switching tabs or leaving full screen ends the current attempt.</p>
+        <div class="assessment-progress"><div id="assessment-progress-bar"></div></div>
+        <p id="assessment-progress-label" class="assessment-progress-label">Question 1 of 5</p>
+        <div id="assessment-question-container"></div>
+        <div id="assessment-result" class="assessment-result" hidden></div>
+        <div id="assessment-actions" class="assessment-actions">
+            <button id="btn-assessment-previous" class="btn-human-secondary" type="button">Previous</button>
+            <button id="btn-assessment-next" class="btn-human-primary" type="button">Next</button>
+            <button id="btn-assessment-submit" class="btn-human-primary" type="button" style="display:none; background:#3B7A57;">Submit assessment</button>
+        </div>
+    </div>
+</div>
 
 <script src="employee-dashboard.js"></script>
 

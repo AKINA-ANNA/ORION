@@ -1049,6 +1049,9 @@ button {
     overflow-y: auto;
 }
 
+.site-logo-frame { display: inline-block; width: 30px; height: 30px; overflow: hidden; flex: 0 0 30px; }
+.site-logo-image { display: block; width: 76px; height: 76px; max-width: none; transform: translate(-23px, -17px); }
+
 .mentor-message {
     max-width: 82%;
 
@@ -2068,6 +2071,22 @@ button {
 .pulse-dot {
     animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+.assessment-modal-card { background:#fff; border:1px solid #E8E5DC; border-radius:18px; box-shadow:0 24px 60px rgba(28,27,24,.2); max-width:620px; padding:24px; width:100%; }
+.assessment-header { align-items:flex-start; display:flex; justify-content:space-between; gap:16px; }
+.assessment-header h3 { color:#1C1B18; font-size:20px; margin:4px 0 0; }
+.assessment-eyebrow { color:#D96B43; font-size:10px; font-weight:800; letter-spacing:.1em; margin:0; }
+.assessment-close { background:transparent; border:0; color:#78756C; cursor:pointer; font-size:26px; line-height:1; }
+.assessment-progress { background:#F0EEE8; border-radius:99px; height:7px; margin-top:20px; overflow:hidden; }
+.assessment-progress > div { background:#D96B43; height:100%; transition:width .2s ease; width:20%; }
+.assessment-progress-label { color:#78756C; font-size:12px; margin:8px 0 20px; }
+.assessment-question { color:#1C1B18; font-size:17px; line-height:1.45; margin:0 0 16px; }
+.assessment-option { align-items:center; border:1px solid #E8E5DC; border-radius:10px; cursor:pointer; display:flex; gap:10px; margin:9px 0; padding:12px; }
+.assessment-option:hover { background:#FAF9F5; border-color:#D8D4C8; }
+.assessment-short-answer { border:1px solid #E8E5DC; border-radius:10px; font:inherit; min-height:100px; padding:12px; resize:vertical; width:100%; }
+.assessment-actions { border-top:1px solid #E8E5DC; display:flex; gap:10px; justify-content:flex-end; margin-top:22px; padding-top:16px; }
+.assessment-actions button { padding:9px 14px; }
+.assessment-result { background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px; color:#1C1B18; line-height:1.5; margin-top:18px; padding:14px; }
 
 .team-grid {
     display: grid;

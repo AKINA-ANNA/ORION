@@ -81,6 +81,66 @@ async function getCurrentUser() {
 
 }
 
+async function requestAdaptiveQuestion(targetStep) {
+    const { data: sessionData, error } = await supabaseClient.auth.getSession();
+    if (error || !sessionData?.session) throw new Error('Your session has expired. Please sign in again.');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-onboarding-roadmap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({ action: 'adaptive-question', target_step: targetStep, previous_answers: answers })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Could not tailor this question.');
+    return data;
+}
+
+function bindAdaptiveOptions(step, grid, options) {
+    grid.replaceChildren();
+    options.forEach(value => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = step === 2 ? 'option' : step === 3 ? 'skill' : 'goal';
+        button.dataset.value = value;
+        if (step === 2) {
+            const strong = document.createElement('strong'); strong.textContent = value;
+            const hint = document.createElement('span'); hint.textContent = 'Choose the option that fits you best.';
+            button.append(strong, hint);
+        } else {
+            button.textContent = value;
+        }
+        button.addEventListener('click', () => {
+            if (step === 2) {
+                grid.querySelectorAll('.option').forEach(item => item.classList.remove('selected'));
+                button.classList.add('selected');
+                answers.experience_level = value;
+                return;
+            }
+            const key = step === 3 ? 'technical_skills' : 'onboarding_goals';
+            button.classList.toggle('selected');
+            answers[key] = answers[key].includes(value)
+                ? answers[key].filter(item => item !== value)
+                : [...answers[key], value];
+        });
+        grid.appendChild(button);
+    });
+}
+
+async function adaptNextQuestion(step) {
+    if (![2, 3, 4].includes(step)) return;
+    const section = document.querySelector(`[data-step="${step}"]`);
+    const grid = section?.querySelector(step === 2 ? '.option-grid' : step === 3 ? '.skill-grid' : '.goal-grid');
+    if (!section || !grid) return;
+    try {
+        const data = await requestAdaptiveQuestion(step);
+        if (!data.question || !Array.isArray(data.options) || data.options.length < 4) return;
+        section.querySelector('h1').textContent = data.question;
+        if (data.description) section.querySelector('.question-description').textContent = data.description;
+        bindAdaptiveOptions(step, grid, data.options);
+    } catch (error) {
+        console.warn('Using the standard questionnaire options:', error);
+    }
+}
+
 
 
 /* ==========================================
@@ -254,15 +314,13 @@ nextButton.addEventListener(
 
 
 
-        if (
-            currentStep < totalSteps
-        ) {
-
+        if (currentStep < totalSteps) {
+            nextButton.disabled = true;
+            nextButton.textContent = 'Tailoring your next question...';
             currentStep++;
-
-            showStep(
-                currentStep
-            );
+            await adaptNextQuestion(currentStep);
+            showStep(currentStep);
+            nextButton.disabled = false;
 
             return;
 
@@ -595,6 +653,23 @@ async function saveProfile() {
 ========================================== */
 
 
-getCurrentUser();
+async function initializeQuestionnaire() {
+    const user = await getCurrentUser();
+    if (!user) return;
+    const { data: profile, error } = await supabaseClient
+        .from('employee_profiles')
+        .select('questionnaire_completed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+    if (error || !profile) {
+        errorElement.textContent = 'Your employee profile could not be loaded.';
+        return;
+    }
+    if (profile.questionnaire_completed) {
+        window.location.href = 'employee-dashboard.html';
+        return;
+    }
+    showStep(1);
+}
 
-showStep(1);
+initializeQuestionnaire();

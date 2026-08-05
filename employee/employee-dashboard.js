@@ -1295,7 +1295,11 @@ async function loadOnboardingRoadmap() {
             step_phase: t.step_phase || 'General',
             order_index: t.order_index || (idx + 1),
             completed: t.status === 'completed' || t.status === 'complete',
-            status: t.status || 'pending'
+            status: t.status || 'pending',
+            requires_assessment: !!t.requires_assessment,
+            assessment_completed: !!t.assessment_completed,
+            assessment_score: t.assessment_score,
+            assessment_attempts: t.assessment_attempts || 0
         }));
 
         // Render Roadmap UI, Home Progress Overview, Today's Focus & Tiles View
@@ -1343,6 +1347,14 @@ function renderRoadmap(tasks) {
         renderEmptyRoadmapState();
         return;
     }
+
+    if (isOnboardingComplete(tasks)) {
+        renderCompletedRoadmapState();
+        return;
+    }
+
+    const roadmapTitle = document.getElementById('roadmapTitle');
+    if (roadmapTitle) roadmapTitle.textContent = 'Your journey';
 
     // Hide empty state if present
     const emptyState = document.getElementById('roadmapEmptyState');
@@ -1399,7 +1411,8 @@ function renderRoadmap(tasks) {
     // Update Progress in Roadmap Header
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'completed' || t.status === 'complete').length;
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const onboardingComplete = isOnboardingComplete(tasks);
+    const pct = onboardingComplete ? 0 : (total > 0 ? Math.round((completed / total) * 100) : 0);
 
     const progressBadge = document.getElementById('roadmapProgress');
     if (progressBadge) {
@@ -1413,14 +1426,35 @@ function renderRoadmap(tasks) {
     if (progressBarInner) progressBarInner.style.width = `${pct}%`;
 }
 
+function isOnboardingComplete(tasks) {
+    return tasks.length > 0 && tasks.every(task => task.status === 'completed' || task.status === 'complete');
+}
+
+function renderCompletedRoadmapState() {
+    const container = document.getElementById('roadmap');
+    if (container) container.innerHTML = `
+        <div class="empty-state" style="padding:48px 24px; text-align:center;">
+            <div class="empty-icon" style="color:#3B7A57; font-size:30px;">✓</div>
+            <h4>Your onboarding is complete</h4>
+            <p>Waiting for your company to assign the next onboarding roadmap.</p>
+        </div>`;
+    const title = document.getElementById('roadmapTitle');
+    if (title) title.textContent = 'Waiting for your next roadmap';
+    const progress = document.getElementById('roadmapProgress');
+    if (progress) progress.textContent = 'Onboarding complete';
+    const progressBarWrap = document.getElementById('roadmapProgressBarWrap');
+    if (progressBarWrap) progressBarWrap.style.display = 'none';
+}
+
 function renderHomeProgress(tasks) {
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'completed' || t.status === 'complete').length;
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const onboardingComplete = isOnboardingComplete(tasks);
+    const pct = onboardingComplete ? 0 : (total > 0 ? Math.round((completed / total) * 100) : 0);
 
     const progressText = document.getElementById('onboardingProgressText');
     if (progressText) {
-        if (completed === total && total > 0) {
+        if (onboardingComplete) {
             progressText.textContent = 'Onboarding Completed! 🎉';
         } else {
             progressText.textContent = `Onboarding Progress (${completed} of ${total} tasks)`;
@@ -1429,8 +1463,8 @@ function renderHomeProgress(tasks) {
 
     const progressDesc = document.getElementById('onboardingProgressDescription');
     if (progressDesc) {
-        if (completed === total && total > 0) {
-            progressDesc.textContent = 'Congratulations! You have completed all steps in your onboarding roadmap.';
+        if (onboardingComplete) {
+            progressDesc.textContent = 'All onboarding tasks are done. Waiting for your next assigned roadmap.';
         } else {
             const nextTask = tasks.find(t => t.status !== 'completed' && t.status !== 'complete');
             progressDesc.textContent = nextTask ? `Next up: ${nextTask.title}` : 'Keep making progress on your assigned tasks.';
@@ -1448,17 +1482,22 @@ function renderTodayFocus(tasks) {
     const container = document.getElementById('todayTasks');
     if (!container) return;
 
+    const onboardingComplete = isOnboardingComplete(tasks);
+    const label = document.getElementById('home-focus-label');
+    const title = document.getElementById('home-focus-title');
+    const action = document.getElementById('home-focus-action');
+    if (label) label.textContent = onboardingComplete ? 'MY PROJECTS' : 'TODAY';
+    if (title) title.textContent = onboardingComplete ? 'Projects overview' : "Today's focus";
+    if (action) {
+        action.dataset.page = onboardingComplete ? 'projects' : 'onboarding';
+        action.textContent = onboardingComplete ? 'View projects →' : 'View roadmap →';
+    }
+
     const pendingTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'complete');
 
     if (pendingTasks.length === 0) {
         if (tasks.length > 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="padding:24px; text-align:center;">
-                    <div class="empty-icon" style="font-size:28px; color:#3B7A57; margin-bottom:8px;">🎉</div>
-                    <h4 style="font-size:16px; font-weight:700; color:#1C1B18;">Congratulations!</h4>
-                    <p style="font-size:13px; color:#54524B; margin-top:4px;">You have completed your onboarding roadmap.</p>
-                </div>
-            `;
+            renderCompletedProjectsOverview(container);
         } else {
             container.innerHTML = `
                 <div class="empty-state" style="padding:24px; text-align:center;">
@@ -1492,6 +1531,47 @@ function renderTodayFocus(tasks) {
     `;
 }
 
+async function renderCompletedProjectsOverview(container) {
+    container.innerHTML = '<div class="empty-state" style="padding:24px; text-align:center;"><p>Loading your projects...</p></div>';
+    const profile = await getCurrentEmployeeProjectProfile();
+    if (!profile?.id || !isOnboardingComplete(employeeTasks)) return;
+
+    const { data, error } = await supabaseClient
+        .from('project_members')
+        .select('project_id, company_projects(id, project_name, problem_statement, deadline)')
+        .eq('employee_id', profile.id);
+    if (!isOnboardingComplete(employeeTasks)) return;
+    if (error) {
+        console.error('HOME PROJECTS LOAD ERROR:', error);
+        container.innerHTML = '<div class="empty-state" style="padding:24px; text-align:center;"><h4>Projects overview unavailable</h4><p>Please open My Projects to try again.</p></div>';
+        return;
+    }
+
+    const projects = (data || []).map(item => item.company_projects).filter(Boolean);
+    employeeProjects = projects;
+    if (!projects.length) {
+        container.innerHTML = '<div class="empty-state" style="padding:24px; text-align:center;"><div class="empty-icon">○</div><h4>No projects assigned yet</h4><p>Your projects will appear here when your company assigns them.</p></div>';
+        return;
+    }
+
+    container.replaceChildren();
+    const list = document.createElement('div');
+    list.style.cssText = 'display:grid; gap:10px;';
+    projects.slice(0, 3).forEach(project => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#FAF9F5; border:1px solid #E8E5DC; border-radius:12px; padding:14px;';
+        const name = document.createElement('h4');
+        name.style.cssText = 'margin:0 0 4px; font-size:14px; color:#1C1B18;';
+        name.textContent = project.project_name;
+        const detail = document.createElement('p');
+        detail.style.cssText = 'margin:0; font-size:12px; color:#54524B;';
+        detail.textContent = project.problem_statement || `Deadline: ${employeeProjectDateLabel(project.deadline)}`;
+        card.append(name, detail);
+        list.appendChild(card);
+    });
+    container.appendChild(list);
+}
+
 function continueTaskTile(taskId) {
     showPage('tiles');
     const task = employeeTasks.find(t => t.id === taskId) || tilesState.steps.find(s => s.id === taskId);
@@ -1502,6 +1582,11 @@ function continueTaskTile(taskId) {
 
 async function toggleTaskStatus(taskId, currentStatus) {
     const newStatus = (currentStatus === 'completed' || currentStatus === 'complete') ? 'pending' : 'completed';
+    const taskToComplete = employeeTasks.find(t => t.id === taskId);
+    if (newStatus === 'completed' && taskToComplete?.requires_assessment && !taskToComplete.assessment_completed) {
+        await openOnboardingAssessment(taskToComplete);
+        return false;
+    }
     const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
 
     // Optimistic UI update in state
@@ -2529,6 +2614,15 @@ function setupTilesEvents() {
     });
   }
 
+  const closeAssessment = document.getElementById('btn-close-assessment');
+  if (closeAssessment) closeAssessment.addEventListener('click', closeOnboardingAssessment);
+  const assessmentPrevious = document.getElementById('btn-assessment-previous');
+  if (assessmentPrevious) assessmentPrevious.addEventListener('click', () => changeAssessmentQuestion(-1));
+  const assessmentNext = document.getElementById('btn-assessment-next');
+  if (assessmentNext) assessmentNext.addEventListener('click', () => changeAssessmentQuestion(1));
+  const assessmentSubmit = document.getElementById('btn-assessment-submit');
+  if (assessmentSubmit) assessmentSubmit.addEventListener('click', submitOnboardingAssessment);
+
   // loadOnboardingRoadmap() is called during dashboard initialization. Do not
   // replace that Supabase state with legacy /api/tiles or local demo data here.
 }
@@ -2663,6 +2757,118 @@ function employeeProjectDateLabel(deadline) {
     if (!deadline) return 'No deadline';
     const date = new Date(`${deadline}T00:00:00`);
     return Number.isNaN(date.getTime()) ? 'No deadline' : date.toLocaleDateString();
+}
+
+let assessmentState = { task: null, questions: [], answers: [], index: 0, submitting: false, active: false, stopped: false, fullscreenRequested: false };
+
+function exitAssessmentFullscreen() {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+
+function stopOnboardingAssessment(reason) {
+    if (!assessmentState.active || assessmentState.stopped || assessmentState.submitting) return;
+    assessmentState.active = false;
+    assessmentState.stopped = true;
+    exitAssessmentFullscreen();
+    const container = document.getElementById('assessment-question-container');
+    const actions = document.getElementById('assessment-actions');
+    if (container) container.textContent = reason;
+    if (actions) actions.style.display = 'none';
+}
+
+function startAssessmentFocusGuard() {
+    assessmentState.active = true;
+    assessmentState.stopped = false;
+    document.addEventListener('visibilitychange', handleAssessmentVisibilityChange);
+    document.addEventListener('fullscreenchange', handleAssessmentFullscreenChange);
+}
+
+function stopAssessmentFocusGuard() {
+    assessmentState.active = false;
+    document.removeEventListener('visibilitychange', handleAssessmentVisibilityChange);
+    document.removeEventListener('fullscreenchange', handleAssessmentFullscreenChange);
+}
+
+function handleAssessmentVisibilityChange() {
+    if (document.hidden) stopOnboardingAssessment('Assessment stopped because you switched away from this tab. Start it again when you are ready to stay on this page.');
+}
+
+function handleAssessmentFullscreenChange() {
+    if (assessmentState.active && assessmentState.fullscreenRequested && !document.fullscreenElement) {
+        stopOnboardingAssessment('Assessment stopped because full screen was exited. Start it again when you are ready.');
+    }
+}
+
+function closeOnboardingAssessment() {
+    stopAssessmentFocusGuard();
+    exitAssessmentFullscreen();
+    closeModal(document.getElementById('modal-onboarding-assessment'));
+}
+
+async function assessmentRequest(payload) {
+    const { data: sessionData, error } = await supabaseClient.auth.getSession();
+    if (error || !sessionData.session) throw new Error('Your session has expired. Please sign in again.');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/onboarding-assessment`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` }, body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Unable to run the assessment.');
+    return data;
+}
+
+async function openOnboardingAssessment(task) {
+    const modal = document.getElementById('modal-onboarding-assessment');
+    const container = document.getElementById('assessment-question-container');
+    if (!modal || !container) return;
+    assessmentState = { task, questions: [], answers: [], index: 0, submitting: false, active: false, stopped: false, fullscreenRequested: false };
+    document.getElementById('assessment-task-title').textContent = task.title || task.step_title || 'Task assessment';
+    document.getElementById('assessment-result').hidden = true;
+    document.getElementById('assessment-actions').style.display = 'flex';
+    container.textContent = 'Preparing your assessment with Orion AI...'; openModal(modal);
+    if (document.documentElement.requestFullscreen) {
+        assessmentState.fullscreenRequested = true;
+        document.documentElement.requestFullscreen().catch(() => { assessmentState.fullscreenRequested = false; });
+    }
+    try {
+        const data = await assessmentRequest({ action: 'generate', task_id: task.id });
+        assessmentState.questions = data.questions || []; assessmentState.answers = new Array(assessmentState.questions.length).fill('');
+        if (assessmentState.questions.length !== 5) throw new Error('The assessment could not be prepared. Please try again.');
+        startAssessmentFocusGuard();
+        renderAssessmentQuestion();
+    } catch (error) { exitAssessmentFullscreen(); container.textContent = error.message || 'Unable to prepare the assessment.'; document.getElementById('assessment-actions').style.display = 'none'; }
+}
+
+function renderAssessmentQuestion() {
+    const question = assessmentState.questions[assessmentState.index]; const container = document.getElementById('assessment-question-container');
+    if (!question || !container) return;
+    container.replaceChildren(); const prompt = document.createElement('p'); prompt.className = 'assessment-question'; prompt.textContent = question.question; container.appendChild(prompt);
+    if (question.type === 'short_answer') {
+        const input = document.createElement('textarea'); input.className = 'assessment-short-answer'; input.placeholder = 'Write your answer...'; input.value = assessmentState.answers[assessmentState.index] || '';
+        input.addEventListener('input', () => assessmentState.answers[assessmentState.index] = input.value); container.appendChild(input);
+    } else (question.options || []).forEach(option => {
+        const label = document.createElement('label'); label.className = 'assessment-option'; const input = document.createElement('input'); input.type = 'radio'; input.name = 'assessment-answer'; input.value = option; input.checked = assessmentState.answers[assessmentState.index] === option;
+        input.addEventListener('change', () => assessmentState.answers[assessmentState.index] = option); const text = document.createElement('span'); text.textContent = option; label.append(input, text); container.appendChild(label);
+    });
+    document.getElementById('assessment-progress-label').textContent = `Question ${assessmentState.index + 1} of ${assessmentState.questions.length}`;
+    document.getElementById('assessment-progress-bar').style.width = `${((assessmentState.index + 1) / assessmentState.questions.length) * 100}%`;
+    document.getElementById('btn-assessment-previous').disabled = assessmentState.index === 0;
+    document.getElementById('btn-assessment-next').style.display = assessmentState.index === 4 ? 'none' : 'inline-flex';
+    document.getElementById('btn-assessment-submit').style.display = assessmentState.index === 4 ? 'inline-flex' : 'none';
+}
+
+function changeAssessmentQuestion(delta) { const index = assessmentState.index + delta; if (index >= 0 && index < 5) { assessmentState.index = index; renderAssessmentQuestion(); } }
+
+async function submitOnboardingAssessment() {
+    if (assessmentState.submitting || assessmentState.stopped) return;
+    if (assessmentState.answers.some(answer => !String(answer).trim())) { alert('Please answer every question before submitting.'); return; }
+    assessmentState.submitting = true; stopAssessmentFocusGuard(); const submit = document.getElementById('btn-assessment-submit'); submit.disabled = true; submit.textContent = 'Grading...';
+    try {
+        const result = await assessmentRequest({ action: 'grade', task_id: assessmentState.task.id, questions: assessmentState.questions, answers: assessmentState.answers });
+        const resultEl = document.getElementById('assessment-result'); resultEl.hidden = false;
+        resultEl.innerHTML = result.passed ? `<strong>Congratulations!</strong><br>You passed this assessment with ${result.score}%.` : `You scored ${result.score}%.<br>You need at least 80% to complete this task. Please review the material and try again.${result.feedback?.length ? `<br><br>${result.feedback.map(escapeHtml).join('<br>')}` : ''}`;
+        if (result.passed) { await loadOnboardingRoadmap(); setTimeout(closeOnboardingAssessment, 1800); } else document.getElementById('assessment-actions').style.display = 'none';
+    } catch (error) { alert(error.message || 'Unable to grade the assessment. Please try again.'); }
+    finally { assessmentState.submitting = false; submit.disabled = false; submit.textContent = 'Submit assessment'; }
 }
 
 function employeeProjectPreview(value) {

@@ -1569,3 +1569,6 @@ a {
     }
 
 }
+
+.site-logo-frame { display: inline-block; width: 32px; height: 32px; overflow: hidden; flex: 0 0 32px; }
+.site-logo-image { display: block; width: 80px; height: 80px; max-width: none; transform: translate(-24px, -18px); }

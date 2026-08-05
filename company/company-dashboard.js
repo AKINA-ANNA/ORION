@@ -4629,6 +4629,11 @@ function renderRoadmapReviewer() {
                     data-task-idx="${idx}"
                 >${escapeHTML(task.instructions)}</textarea>
 
+                <label class="ob-assessment-toggle">
+                    <input type="checkbox" data-task-assessment="${idx}" ${task.requires_assessment ? 'checked' : ''}>
+                    <span>Test employee before marking this task complete</span>
+                </label>
+
             </div>
         `;
     }).join('');
@@ -4641,6 +4646,13 @@ function renderRoadmapReviewer() {
             if (generatedTasks[idx] !== undefined) {
                 generatedTasks[idx][field] = this.value;
             }
+        });
+    });
+
+    container.querySelectorAll('[data-task-assessment]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.taskAssessment);
+            if (generatedTasks[idx] !== undefined) generatedTasks[idx].requires_assessment = this.checked;
         });
     });
 
@@ -4804,6 +4816,7 @@ async function approveRoadmap() {
                 step_phase: task.step_phase || 'General',
                 order_index: idx + 1,
                 status: 'pending',
+                requires_assessment: !!task.requires_assessment,
                 created_at: new Date().toISOString()
             };
         });

@@ -167,6 +167,27 @@ serve(async (req) => {
     const body = await req.json();
     const action = body?.action === "task-guidance" ? "task-guidance" : "generate-roadmap";
 
+    if (body?.action === "adaptive-question") {
+      const targetStep = Number(body?.target_step);
+      if (![2, 3, 4].includes(targetStep)) return jsonResponse({ error: "target_step must be 2, 3, or 4." }, 400);
+      const { data: employee, error: employeeError } = await adminClient
+        .from("employee_profiles").select("id").eq("user_id", authData.user.id).maybeSingle();
+      if (employeeError || !employee) return jsonResponse({ error: "Employee membership could not be verified." }, 403);
+
+      const answers = body?.previous_answers && typeof body.previous_answers === "object" ? body.previous_answers : {};
+      const previousAnswers = JSON.stringify(answers).slice(0, 6000);
+      const topic = targetStep === 2 ? "experience level" : targetStep === 3 ? "skills" : "early onboarding goals";
+      const result = await callOpenRouter(
+        "You tailor a friendly, first-time employee onboarding questionnaire. Return strict JSON only.",
+        `Return exactly {"question":"","description":"","options":[""]}. Create one simple multiple-choice question about ${topic}, tailored only from the employee's previous answers. Use plain language. Provide 4 to 8 short options. Do not ask for sensitive personal information, do not make claims about the company, and do not use external knowledge.\n\nPrevious answers: ${previousAnswers}`,
+      );
+      const question = typeof result?.question === "string" ? result.question.trim() : "";
+      const description = typeof result?.description === "string" ? result.description.trim() : "";
+      const options = Array.isArray(result?.options) ? result.options.map((option: unknown) => String(option).trim()).filter(Boolean).slice(0, 8) : [];
+      if (!question || options.length < 4) throw new Error("AI returned an incomplete questionnaire follow-up.");
+      return jsonResponse({ question, description, options });
+    }
+
     if (action === "task-guidance") {
       const taskId = typeof body.task_id === "string" ? body.task_id : "";
       if (!taskId) return jsonResponse({ error: "task_id is required for task guidance." }, 400);

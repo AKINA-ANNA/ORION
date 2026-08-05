@@ -1081,7 +1081,11 @@ async function loadOnboardingRoadmap() {
             step_phase: t.step_phase || 'General',
             order_index: t.order_index || (idx + 1),
             completed: t.status === 'completed' || t.status === 'complete',
-            status: t.status || 'pending'
+            status: t.status || 'pending',
+            requires_assessment: !!t.requires_assessment,
+            assessment_completed: !!t.assessment_completed,
+            assessment_score: t.assessment_score,
+            assessment_attempts: t.assessment_attempts || 0
         }));
 
         // Render Roadmap UI, Home Progress Overview, Today's Focus & Tiles View
@@ -1287,6 +1291,11 @@ function continueTaskTile(taskId) {
 
 async function toggleTaskStatus(taskId, currentStatus) {
     const newStatus = (currentStatus === 'completed' || currentStatus === 'complete') ? 'pending' : 'completed';
+    const taskToComplete = employeeTasks.find(t => t.id === taskId);
+    if (newStatus === 'completed' && taskToComplete?.requires_assessment && !taskToComplete.assessment_completed) {
+        await openOnboardingAssessment(taskToComplete);
+        return;
+    }
     const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
 
     // Optimistic UI update in state
@@ -1333,6 +1342,112 @@ async function toggleTaskStatus(taskId, currentStatus) {
     } catch (err) {
         console.error('toggleTaskStatus error:', err);
     }
+}
+
+let assessmentState = { task: null, questions: [], answers: [], index: 0, submitting: false };
+
+async function assessmentRequest(payload) {
+    const { data: sessionData, error } = await supabaseClient.auth.getSession();
+    if (error || !sessionData.session) throw new Error('Your session has expired. Please sign in again.');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/onboarding-assessment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Unable to run the assessment.');
+    return data;
+}
+
+async function openOnboardingAssessment(task) {
+    const modal = document.getElementById('modal-onboarding-assessment');
+    const title = document.getElementById('assessment-task-title');
+    const container = document.getElementById('assessment-question-container');
+    const result = document.getElementById('assessment-result');
+    if (!modal || !container) return;
+    assessmentState = { task, questions: [], answers: [], index: 0, submitting: false };
+    if (title) title.textContent = task.title || task.step_title || 'Task assessment';
+    if (result) { result.hidden = true; result.textContent = ''; }
+    document.getElementById('assessment-actions').style.display = 'flex';
+    container.textContent = 'Preparing your assessment with Orion AI...';
+    openModal(modal);
+    try {
+        const data = await assessmentRequest({ action: 'generate', task_id: task.id });
+        assessmentState.questions = data.questions || [];
+        assessmentState.answers = new Array(assessmentState.questions.length).fill('');
+        if (assessmentState.questions.length !== 5) throw new Error('The assessment could not be prepared. Please try again.');
+        renderAssessmentQuestion();
+    } catch (error) {
+        container.textContent = error.message || 'Unable to prepare the assessment.';
+        document.getElementById('assessment-actions').style.display = 'none';
+    }
+}
+
+function renderAssessmentQuestion() {
+    const question = assessmentState.questions[assessmentState.index];
+    const container = document.getElementById('assessment-question-container');
+    const prev = document.getElementById('btn-assessment-previous');
+    const next = document.getElementById('btn-assessment-next');
+    const submit = document.getElementById('btn-assessment-submit');
+    const label = document.getElementById('assessment-progress-label');
+    const bar = document.getElementById('assessment-progress-bar');
+    const actions = document.getElementById('assessment-actions');
+    if (!question || !container) return;
+    if (actions) actions.style.display = 'flex';
+    container.replaceChildren();
+    const prompt = document.createElement('p'); prompt.className = 'assessment-question'; prompt.textContent = question.question; container.appendChild(prompt);
+    if (question.type === 'short_answer') {
+        const input = document.createElement('textarea'); input.className = 'assessment-short-answer'; input.placeholder = 'Write your answer...'; input.value = assessmentState.answers[assessmentState.index] || '';
+        input.addEventListener('input', () => assessmentState.answers[assessmentState.index] = input.value); container.appendChild(input);
+    } else {
+        (question.options || []).forEach((option, index) => {
+            const item = document.createElement('label'); item.className = 'assessment-option';
+            const input = document.createElement('input'); input.type = 'radio'; input.name = 'assessment-answer'; input.value = option;
+            input.checked = assessmentState.answers[assessmentState.index] === option;
+            input.addEventListener('change', () => assessmentState.answers[assessmentState.index] = option);
+            const text = document.createElement('span'); text.textContent = option;
+            item.append(input, text); container.appendChild(item);
+        });
+    }
+    if (label) label.textContent = `Question ${assessmentState.index + 1} of ${assessmentState.questions.length}`;
+    if (bar) bar.style.width = `${((assessmentState.index + 1) / assessmentState.questions.length) * 100}%`;
+    if (prev) prev.disabled = assessmentState.index === 0;
+    if (next) next.style.display = assessmentState.index === assessmentState.questions.length - 1 ? 'none' : 'inline-flex';
+    if (submit) submit.style.display = assessmentState.index === assessmentState.questions.length - 1 ? 'inline-flex' : 'none';
+}
+
+function changeAssessmentQuestion(delta) {
+    const nextIndex = assessmentState.index + delta;
+    if (nextIndex >= 0 && nextIndex < assessmentState.questions.length) { assessmentState.index = nextIndex; renderAssessmentQuestion(); }
+}
+
+async function submitOnboardingAssessment() {
+    if (assessmentState.submitting || assessmentState.answers.some(answer => !String(answer).trim())) {
+        if (assessmentState.answers.some(answer => !String(answer).trim())) alert('Please answer every question before submitting.');
+        return;
+    }
+    assessmentState.submitting = true;
+    const submit = document.getElementById('btn-assessment-submit');
+    if (submit) { submit.disabled = true; submit.textContent = 'Grading...'; }
+    try {
+        const result = await assessmentRequest({ action: 'grade', task_id: assessmentState.task.id, questions: assessmentState.questions, answers: assessmentState.answers });
+        const task = employeeTasks.find(item => item.id === assessmentState.task.id);
+        const attemptCount = (task?.assessment_attempts || 0) + 1;
+        const updates = { assessment_score: result.score, assessment_attempts: attemptCount, assessment_completed: !!result.passed };
+        if (result.passed) { updates.status = 'completed'; updates.completed_at = new Date().toISOString(); }
+        const { error } = await supabaseClient.from('onboarding_tasks').update(updates).eq('id', assessmentState.task.id);
+        if (error) throw error;
+        const resultEl = document.getElementById('assessment-result');
+        if (resultEl) {
+            resultEl.hidden = false;
+            resultEl.innerHTML = result.passed
+                ? `<strong>Congratulations!</strong><br>You passed this assessment with ${result.score}%.`
+                : `You scored ${result.score}%.<br>You need at least 80% to complete this task. Please review the material and try again.${result.feedback?.length ? `<br><br>${result.feedback.map(escapeHtml).join('<br>')}` : ''}`;
+        }
+        if (result.passed) { await loadOnboardingRoadmap(); setTimeout(() => closeModal(document.getElementById('modal-onboarding-assessment')), 1800); }
+        else { assessmentState.questions = []; document.getElementById('assessment-actions').style.display = 'none'; }
+    } catch (error) { alert(error.message || 'Unable to grade the assessment. Please try again.'); }
+    finally { assessmentState.submitting = false; if (submit) { submit.disabled = false; submit.textContent = 'Submit assessment'; } }
 }
 
 function escapeHtml(str) {
@@ -2321,6 +2436,15 @@ function setupTilesEvents() {
       }
     });
   }
+
+  const closeAssessment = document.getElementById('btn-close-assessment');
+  if (closeAssessment) closeAssessment.addEventListener('click', () => closeModal(document.getElementById('modal-onboarding-assessment')));
+  const assessmentPrevious = document.getElementById('btn-assessment-previous');
+  if (assessmentPrevious) assessmentPrevious.addEventListener('click', () => changeAssessmentQuestion(-1));
+  const assessmentNext = document.getElementById('btn-assessment-next');
+  if (assessmentNext) assessmentNext.addEventListener('click', () => changeAssessmentQuestion(1));
+  const assessmentSubmit = document.getElementById('btn-assessment-submit');
+  if (assessmentSubmit) assessmentSubmit.addEventListener('click', submitOnboardingAssessment);
 
   fetchTilesFromBackend();
 }
