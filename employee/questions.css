@@ -1,0 +1,700 @@
+/* ==========================================
+   ORION — QUESTIONS / ONBOARDING
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --background: #f7f7f5;
+    --surface: #ffffff;
+    --text: #171717;
+    --muted: #737373;
+    --border: #e5e5e5;
+    --border-dark: #d4d4d4;
+    --accent: #171717;
+    --success: #2f7d4a;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--text);
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+/* ==========================================
+   MAIN CONTAINER
+   ========================================== */
+
+.question-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ==========================================
+   HEADER
+   ========================================== */
+
+.question-header {
+    width: 100%;
+    padding: 28px 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.7);
+
+    backdrop-filter: blur(10px);
+}
+
+
+.question-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+
+.brand-mark {
+    width: 28px;
+    height: 28px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.brand-mark span {
+    position: absolute;
+
+    width: 10px;
+    height: 22px;
+
+    border: 2px solid var(--text);
+
+    border-radius: 50%;
+}
+
+
+.brand-mark span:first-child {
+    transform: rotate(45deg);
+}
+
+
+.brand-mark span:last-child {
+    transform: rotate(-45deg);
+}
+
+
+.progress-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+
+#stepNumber {
+    color: var(--text);
+    font-weight: 700;
+}
+
+
+/* ==========================================
+   MAIN QUESTION AREA
+   ========================================== */
+
+.question-main {
+    width: 100%;
+    max-width: 850px;
+
+    margin: 0 auto;
+
+    padding: 90px 30px 60px;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.question-step {
+    display: none;
+
+    animation:
+        fadeIn 0.25s ease;
+}
+
+
+.question-step.active {
+    display: block;
+}
+
+
+@keyframes fadeIn {
+
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+/* ==========================================
+   TEXT
+   ========================================== */
+
+.question-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    color: var(--muted);
+
+    margin-bottom: 20px;
+}
+
+
+.question-step h1 {
+    font-size: clamp(36px, 5vw, 58px);
+
+    line-height: 1.05;
+
+    letter-spacing: -2.5px;
+
+    font-weight: 650;
+
+    max-width: 750px;
+
+    margin-bottom: 20px;
+}
+
+
+.question-description {
+    font-size: 18px;
+
+    line-height: 1.6;
+
+    color: var(--muted);
+
+    max-width: 600px;
+
+    margin-bottom: 45px;
+}
+
+
+/* ==========================================
+   LARGE TEXT INPUT
+   ========================================== */
+
+.large-input {
+    width: 100%;
+
+    padding: 22px 24px;
+
+    font-size: 20px;
+
+    background: var(--surface);
+
+    color: var(--text);
+
+    border: 1px solid var(--border-dark);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.large-input::placeholder {
+    color: #a3a3a3;
+}
+
+
+.large-input:focus {
+    border-color: var(--text);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(0, 0, 0, 0.06);
+}
+
+
+/* ==========================================
+   EXPERIENCE OPTIONS
+   ========================================== */
+
+.option-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 14px;
+}
+
+
+.option {
+    padding: 25px;
+
+    text-align: left;
+
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.option:hover {
+    border-color: var(--border-dark);
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 25px
+        rgba(0, 0, 0, 0.05);
+}
+
+
+.option strong {
+    font-size: 16px;
+
+    color: var(--text);
+}
+
+
+.option span {
+    font-size: 14px;
+
+    color: var(--muted);
+
+    line-height: 1.5;
+}
+
+
+.option.selected {
+    border-color: var(--text);
+
+    background: #fafafa;
+
+    box-shadow:
+        0 0 0 2px
+        var(--text);
+}
+
+
+/* ==========================================
+   SKILLS
+   ========================================== */
+
+.skill-grid {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+}
+
+
+.skill {
+    padding: 14px 20px;
+
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 8px;
+
+    color: var(--text);
+
+    font-size: 15px;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.skill:hover {
+    border-color: var(--border-dark);
+
+    transform: translateY(-1px);
+}
+
+
+.skill.selected {
+    background: var(--text);
+
+    color: white;
+
+    border-color: var(--text);
+}
+
+
+/* ==========================================
+   GOALS
+   ========================================== */
+
+.goal-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 12px;
+}
+
+
+.goal {
+    padding: 20px;
+
+    text-align: left;
+
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 8px;
+
+    font-size: 15px;
+
+    color: var(--text);
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.goal:hover {
+    border-color: var(--border-dark);
+
+    transform: translateY(-1px);
+}
+
+
+.goal.selected {
+    background: var(--text);
+
+    color: white;
+
+    border-color: var(--text);
+}
+
+
+/* ==========================================
+   TEXTAREA
+   ========================================== */
+
+.large-textarea {
+    width: 100%;
+
+    min-height: 200px;
+
+    resize: vertical;
+
+    padding: 20px;
+
+    background: var(--surface);
+
+    color: var(--text);
+
+    border:
+        1px solid var(--border-dark);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 16px;
+
+    line-height: 1.6;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.large-textarea::placeholder {
+    color: #a3a3a3;
+}
+
+
+.large-textarea:focus {
+    border-color: var(--text);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(0, 0, 0, 0.06);
+}
+
+
+/* ==========================================
+   ACTIONS
+   ========================================== */
+
+.question-actions {
+    margin-top: 60px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+
+.back-button {
+    border: none;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 15px;
+
+    cursor: pointer;
+
+    padding: 12px 0;
+
+    transition:
+        color 0.2s ease;
+}
+
+
+.back-button:hover {
+    color: var(--text);
+}
+
+
+/* ==========================================
+   MAIN BUTTON
+   ========================================== */
+
+.button {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 14px 24px;
+
+    border-radius: 7px;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    border: none;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+
+.button-dark {
+    background: var(--text);
+
+    color: white;
+}
+
+
+.button-dark:hover {
+    background: #333333;
+
+    transform: translateY(-1px);
+}
+
+
+.button:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* ==========================================
+   ERROR
+   ========================================== */
+
+.question-error {
+    margin-top: 18px;
+
+    color: #c0392b;
+
+    font-size: 14px;
+
+    min-height: 20px;
+}
+
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 700px) {
+
+
+    .question-header {
+        padding: 22px 24px;
+    }
+
+
+    .question-main {
+        padding:
+            60px 22px
+            40px;
+    }
+
+
+    .question-step h1 {
+        font-size: 38px;
+
+        letter-spacing: -1.8px;
+    }
+
+
+    .question-description {
+        font-size: 16px;
+
+        margin-bottom: 32px;
+    }
+
+
+    .option-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .goal-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .question-actions {
+        margin-top: 45px;
+    }
+
+
+    .button-dark {
+        padding:
+            13px 18px;
+    }
+
+}
+
+
+@media (max-width: 450px) {
+
+
+    .question-header {
+        padding:
+            18px 18px;
+    }
+
+
+    .question-logo {
+        font-size: 19px;
+    }
+
+
+    .question-main {
+        padding:
+            45px 18px
+            35px;
+    }
+
+
+    .question-step h1 {
+        font-size: 32px;
+    }
+
+
+    .large-input {
+        font-size: 17px;
+
+        padding:
+            18px;
+    }
+
+
+    .skill {
+        padding:
+            12px 16px;
+    }
+
+
+    .question-actions {
+        gap: 15px;
+    }
+
+
+}

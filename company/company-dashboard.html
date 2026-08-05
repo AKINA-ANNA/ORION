@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Company Dashboard — Orion</title>
+
+    <link
+        rel="stylesheet"
+        href="company-dashboard.css"
+    >
+
+    <!-- Plus Jakarta Sans & Newsreader Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+
+
+<body>
+<!-- =========================================
+     SIDEBAR
+========================================= -->
+
+<aside
+    id="sidebar"
+    class="sidebar"
+>
+
+
+    <!-- LOGO -->
+
+    <a
+        href="company-dashboard.html"
+        class="brand"
+    >
+
+        <div class="brand-mark">
+
+            <span></span>
+            <span></span>
+
+        </div>
+
+        <span>orion</span>
+
+    </a>
+
+
+
+    <!-- COMPANY -->
+
+    <div class="company-switcher">
+
+        <div class="company-avatar">
+            <span id="companyInitial">
+                C
+            </span>
+        </div>
+
+        <div class="company-info">
+
+            <strong id="sidebarCompanyName">
+                Loading...
+            </strong>
+
+            <span>
+                Company Account
+            </span>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- NAVIGATION -->
+
+    <nav class="sidebar-nav">
+
+
+        <p class="nav-label">
+            WORKSPACE
+        </p>
+
+
+        <button
+            class="nav-item active"
+            data-section="overview"
+        >
+
+            <span class="nav-icon">
+                ◈
+            </span>
+
+            <span>
+                Overview
+            </span>
+
+        </button>
+
+
+        <button
+            class="nav-item"
+            data-section="employees"
+        >
+
+            <span class="nav-icon">
+                ◎
+            </span>
+
+            <span>
+                Employees
+            </span>
+
+        </button>
+
+
+        <button
+            class="nav-item"
+            data-section="onboarding"
+        >
+
+            <span class="nav-icon">
+                ✦
+            </span>
+
+            <span>
+                Onboarding
+            </span>
+
+        </button>
+
+        <button
+            class="nav-item"
+            data-section="knowledge"
+        >
+
+            <span class="nav-icon">
+                ◈
+            </span>
+
+            <span>
+                Knowledge
+            </span>
+
+        </button>
+
+
+
+
+
+        <button
+            class="nav-item"
+            data-section="departments"
+        >
+
+            <span class="nav-icon">
+                ▦
+            </span>
+
+            <span>
+                Departments
+            </span>
+
+        </button>
+
+        <button class="nav-item" data-section="projects">
+            <span class="nav-icon">◫</span>
+            <span>My Projects</span>
+        </button>
+
+
+        <p class="nav-label nav-label-spaced">
+            INSIGHTS
+        </p>
+
+
+        <button
+            class="nav-item"
+            data-section="analytics"
+        >
+
+            <span class="nav-icon">
+                ↗
+            </span>
+
+            <span>
+                Analytics
+            </span>
+
+        </button>
+
+
+        <p class="nav-label nav-label-spaced">
+            COMPANY
+        </p>
+
+
+        <button
+            class="nav-item"
+            data-section="profile"
+        >
+
+            <span class="nav-icon">
+                ◉
+            </span>
+
+            <span>
+                Company Profile
+            </span>
+
+        </button>
+
+
+        <button
+            class="nav-item"
+            data-section="settings"
+        >
+
+            <span class="nav-icon">
+                ⚙
+            </span>
+
+            <span>
+                Settings
+            </span>
+
+        </button>
+
+
+    </nav>
+
+
+
+    <!-- SIDEBAR BOTTOM -->
+
+    <div class="sidebar-bottom">
+
+
+        <button
+            id="logoutButton"
+            class="logout-button"
+        >
+
+            <span>
+                ↪
+            </span>
+
+            Log out
+
+        </button>
+
+
+    </div>
+
+
+</aside>
+
+
+
+<!-- =========================================
+     MOBILE OVERLAY
+========================================= -->
+
+<div
+    id="sidebarOverlay"
+    class="sidebar-overlay"
+></div>
+
+
+
+<!-- =========================================
+     MAIN APP
+========================================= -->
+
+<div class="app">
+
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+
+        <button
+            id="menuButton"
+            class="menu-button"
+        >
+            ☰
+        </button>
+
+
+        <div class="topbar-title">
+
+            <span class="eyebrow">
+                COMPANY WORKSPACE
+            </span>
+
+            <h2 id="pageTitle">
+                Overview
+            </h2>
+
+        </div>
+
+
+        <div class="topbar-right">
+
+
+            <button
+                class="notification-button"
+                id="notificationButton"
+            >
+
+                ◌
+
+                <span class="notification-dot"></span>
+
+            </button>
+
+
+            <div class="user-avatar">
+                <span id="userInitial">
+                    C
+                </span>
+            </div>
+
+
+        </div>
+
+
+    </header>
+
+
+
+    <!-- =====================================
+         MAIN CONTENT
+    ====================================== -->
+
+    <main class="main-content">
+
+
+        <!-- =================================
+             OVERVIEW
+        ================================== -->
+
+        <section
+            id="overviewSection"
+            class="dashboard-section active"
+        >
+
+
+            <div class="welcome-row">
+
+
+                <div>
+
+                    <p class="eyebrow">
+                        WELCOME BACK
+                    </p>
+
+                    <h1>
+                        Good to see you,
+                        <span id="welcomeCompanyName">
+                            Company
+                        </span>.
+                    </h1>
+
+                    <p>
+                        Here's what's happening across
+                        your organization.
+                    </p>
+
+                </div>
+
+
+                <button
+                    class="primary-button"
+                    data-section-target="employees"
+                >
+
+                    Manage employees
+
+                    <span>
+                        →
+                    </span>
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- STATS -->
+
+            <div class="stats-grid">
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span>
+                            Total employees
+                        </span>
+
+                        <span class="stat-icon">
+                            ◎
+                        </span>
+
+                    </div>
+
+                    <strong id="totalEmployees">
+                        —
+                    </strong>
+
+                    <p>
+                        Employees in your organization
+                    </p>
+
+                </div>
+
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span>
+                            Onboarding complete
+                        </span>
+
+                        <span class="stat-icon">
+                            ✓
+                        </span>
+
+                    </div>
+
+                    <strong id="completedEmployees">
+                        —
+                    </strong>
+
+                    <p>
+                        Employees who completed onboarding
+                    </p>
+
+                </div>
+
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span>
+                            In progress
+                        </span>
+
+                        <span class="stat-icon">
+                            ◷
+                        </span>
+
+                    </div>
+
+                    <strong id="pendingEmployees">
+                        —
+                    </strong>
+
+                    <p>
+                        Employees still onboarding
+                    </p>
+
+                </div>
+
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span>
+                            Completion rate
+                        </span>
+
+                        <span class="stat-icon">
+                            ↗
+                        </span>
+
+                    </div>
+
+                    <strong id="completionRate">
+                        —
+                    </strong>
+
+                    <p>
+                        Overall onboarding progress
+                    </p>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- MAIN GRID -->
+
+            <div class="content-grid">
+
+
+                <!-- ONBOARDING CARD -->
+
+                <div class="panel onboarding-overview">
+
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <p class="eyebrow">
+                                ORION ONBOARDING
+                            </p>
+
+                            <h3>
+                                Your onboarding system
+                            </h3>
+
+                        </div>
+
+                        <span class="status-badge">
+                            AI Powered
+                        </span>
+
+                    </div>
+
+
+                    <p class="panel-description">
+
+                        Orion uses the information you provided
+                        during company discovery to help create
+                        a personalized onboarding experience
+                        for your employees.
+
+                    </p>
+
+
+                    <div class="progress-container">
+
+                        <div class="progress-label">
+
+                            <span>
+                                Company setup
+                            </span>
+
+                            <strong id="companySetupProgress">
+                                Complete
+                            </strong>
+
+                        </div>
+
+
+                        <div class="progress-track">
+
+                            <div
+                                class="progress-fill"
+                                id="companyProgressBar"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        class="secondary-button"
+                        data-section-target="onboarding"
+                    >
+
+                        View onboarding setup
+
+                        <span>
+                            →
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- QUICK ACTIONS -->
+
+                <div class="panel">
+
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <p class="eyebrow">
+                                QUICK ACTIONS
+                            </p>
+
+                            <h3>
+                                Get things done
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="quick-actions">
+
+
+                        <button
+                            class="quick-action"
+                            data-section-target="employees"
+                        >
+
+                            <span class="quick-action-icon">
+                                +
+                            </span>
+
+                            <span>
+
+                                <strong>
+                                    Add employee
+                                </strong>
+
+                                <small>
+                                    Invite someone to Orion
+                                </small>
+
+                            </span>
+
+                            <span>
+                                →
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            class="quick-action"
+                            data-section-target="departments"
+                        >
+
+                            <span class="quick-action-icon">
+                                ▦
+                            </span>
+
+                            <span>
+
+                                <strong>
+                                    Manage departments
+                                </strong>
+
+                                <small>
+                                    Organize your teams
+                                </small>
+
+                            </span>
+
+                            <span>
+                                →
+                            </span>
+
+                        </button>
+
+
+                        <button
+                            class="quick-action"
+                            data-section-target="analytics"
+                        >
+
+                            <span class="quick-action-icon">
+                                ↗
+                            </span>
+
+                            <span>
+
+                                <strong>
+                                    View analytics
+                                </strong>
+
+                                <small>
+                                    Understand onboarding progress
+                                </small>
+
+                            </span>
+
+                            <span>
+                                →
+                            </span>
+
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- RECENT EMPLOYEES -->
+
+            <div class="panel">
+
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            EMPLOYEES
+                        </p>
+
+                        <h3>
+                            Recent employees
+                        </h3>
+
+                    </div>
+
+
+                    <button
+                        class="text-button"
+                        data-section-target="employees"
+                    >
+
+                        View all →
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="recentEmployees"
+                    class="employee-list"
+                >
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ◎
+                        </div>
+
+                        <h4>
+                            No employees yet
+                        </h4>
+
+                        <p>
+                            Invite your first employee
+                            to get started.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             EMPLOYEES
+        ================================== -->
+
+        <section
+            id="employeesSection"
+            class="dashboard-section"
+        >
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        ORGANIZATION
+                    </p>
+
+                    <h1>
+                        Employees
+                    </h1>
+
+                    <p>
+                        Manage your employees and track
+                        their onboarding progress.
+                    </p>
+
+                </div>
+
+
+                <button
+                    id="addEmployeeButton"
+                    class="primary-button"
+                >
+
+                    + Add employee
+
+                </button>
+
+            </div>
+
+
+            <div class="panel">
+
+
+                <div class="table-toolbar">
+
+                    <input
+                        type="text"
+                        id="employeeSearch"
+                        class="search-input"
+                        placeholder="Search employees..."
+                    >
+
+
+                    <select
+                        id="employeeFilter"
+                        class="filter-select"
+                    >
+
+                        <option value="all">
+                            All employees
+                        </option>
+
+                        <option value="completed">
+                            Completed
+                        </option>
+
+                        <option value="pending">
+                            In progress
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Employee
+                                </th>
+
+                                <th>
+                                    Department
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th>
+                                    Joined
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody
+                            id="employeesTableBody"
+                        >
+
+                            <tr>
+
+                                <td colspan="5">
+
+                                    <div class="table-empty">
+                                        Loading employees...
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             ONBOARDING
+        ================================== -->
+
+        <!-- =================================
+             ONBOARDING
+        ================================== -->
+
+        <!-- =================================
+             ONBOARDING
+        ================================== -->
+
+        <section
+            id="onboardingSection"
+            class="dashboard-section"
+        >
+
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">
+                        AI ONBOARDING
+                    </p>
+                    <h1>
+                        Employee Onboarding Tracker
+                    </h1>
+                    <p>
+                        Track individual employee onboarding progress, milestones completed, and active roadmaps.
+                    </p>
+                </div>
+            </div>
+
+            <!-- OVERALL COMPANY STATS CARDS -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <span>Total Employees</span>
+                        <span class="stat-icon">👥</span>
+                    </div>
+                    <strong id="onboardingTotalEmp">0</strong>
+                    <p>Total employees in workspace</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <span>Active Onboardings</span>
+                        <span class="stat-icon" style="color:#D96B43;">◷</span>
+                    </div>
+                    <strong id="onboardingActiveEmp">0</strong>
+                    <p>Employees in active onboarding</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <span>Completed Plans</span>
+                        <span class="stat-icon" style="color:#3B7A57;">✓</span>
+                    </div>
+                    <strong id="onboardingCompletedEmp">0</strong>
+                    <p>Fully onboarded team members</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <span>Company Progress</span>
+                        <span class="stat-icon">↗</span>
+                    </div>
+                    <strong id="onboardingCompanyRate">0%</strong>
+                    <p>Average completion rate</p>
+                </div>
+            </div>
+
+            <!-- EMPLOYEE PROGRESS TRACKER TABLE -->
+            <div class="panel" style="margin-top: 24px;">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">EMPLOYEE PROGRESS TRACKER</p>
+                        <h3>Onboarding Progress per Employee</h3>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top: 16px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Department</th>
+                                <th>Onboarding Progress Bar</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="onboardingTableBody">
+                            <tr>
+                                <td colspan="5">
+                                    <div class="table-empty">Loading employee onboarding progress...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================
+             DEPARTMENTS
+        ================================== -->
+
+        <section
+            id="departmentsSection"
+            class="dashboard-section"
+        >
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        ORGANIZATION
+                    </p>
+
+                    <h1>
+                        Departments
+                    </h1>
+
+                    <p>
+                        Organize employees into teams and
+                        departments.
+                    </p>
+
+                </div>
+
+
+                <button
+                    id="addDepartmentButton"
+                    class="primary-button"
+                >
+
+                    + Add department
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="departmentsGrid"
+                class="departments-grid"
+            >
+
+
+                <div class="empty-state panel">
+
+                    <div class="empty-icon">
+                        ▦
+                    </div>
+
+                    <h4>
+                        No departments yet
+                    </h4>
+
+                    <p>
+                        Create departments to organize
+                        your organization.
+                    </p>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             PROJECTS
+        ================================== -->
+
+        <section id="projectsSection" class="dashboard-section">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">WORKSPACE</p>
+                    <h1>My Projects</h1>
+                    <p>Create projects and assign employees to the work that matters.</p>
+                </div>
+                <button id="addProjectButton" class="primary-button" type="button">+ Create Project</button>
+            </div>
+            <div id="companyProjectsGrid" class="projects-grid"></div>
+        </section>
+
+
+
+        <!-- =================================
+             KNOWLEDGE
+        ================================== -->
+
+        <section
+            id="knowledgeSection"
+            class="dashboard-section"
+        >
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        COMPANY KNOWLEDGE
+                    </p>
+
+                    <h1>
+                        Knowledge Base
+                    </h1>
+
+                    <p>
+                        Upload and manage documents your employees can securely access.
+                    </p>
+
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
+                    <input
+                        id="knowledgeUploadInput"
+                        type="file"
+                        accept=".pdf,.docx,.txt,.md,.markdown,.csv,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv,application/json"
+                        hidden
+                    >
+
+                    <button
+                        id="uploadKnowledgeButton"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Upload Knowledge
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="panel" style="padding:20px;">
+
+                <div style="display:flex; justify-content:space-between; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+
+                    <input
+                        id="companyKnowledgeSearch"
+                        type="search"
+                        placeholder="Search uploaded documents..."
+                        style="min-width:260px; flex:1; max-width:420px;"
+                    >
+
+                    <p id="knowledgeUploadMessage" class="form-message" style="margin:0;"></p>
+
+                </div>
+
+                <div class="table-container">
+
+                    <table class="data-table">
+
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="companyKnowledgeTableBody">
+                            <tr>
+                                <td colspan="5">
+                                    <div class="table-empty">Open Knowledge to view your company documents.</div>
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================
+             ANALYTICS
+        ================================== -->
+
+        <section
+            id="analyticsSection"
+            class="dashboard-section"
+        >
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        INSIGHTS
+                    </p>
+
+                    <h1>
+                        Analytics
+                    </h1>
+
+                    <p>
+                        Understand how employees are progressing
+                        through onboarding.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+
+                <div class="stat-card">
+
+                    <span>
+                        Total employees
+                    </span>
+
+                    <strong id="analyticsTotal">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>
+                        Completed
+                    </span>
+
+                    <strong id="analyticsCompleted">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>
+                        In progress
+                    </span>
+
+                    <strong id="analyticsPending">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>
+                        Completion rate
+                    </span>
+
+                    <strong id="analyticsRate">
+                        —
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="panel analytics-panel">
+
+
+                <p class="eyebrow">
+                    ONBOARDING PERFORMANCE
+                </p>
+
+
+                <h3>
+                    Employee onboarding progress
+                </h3>
+
+
+                <div class="big-progress">
+
+                    <div class="big-progress-track">
+
+                        <div
+                            id="analyticsProgressBar"
+                            class="progress-fill"
+                        ></div>
+
+                    </div>
+
+
+                    <strong
+                        id="analyticsProgressText"
+                    >
+                        0%
+                    </strong>
+
+                </div>
+
+
+                <p>
+                    This represents the percentage of
+                    employees who have completed their
+                    onboarding journey.
+                </p>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             COMPANY PROFILE
+        ================================== -->
+
+        <section
+            id="profileSection"
+            class="dashboard-section"
+        >
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        COMPANY
+                    </p>
+
+                    <h1>
+                        Company Profile
+                    </h1>
+
+                    <p>
+                        Manage your organization's information.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel profile-panel">
+
+
+                <div class="profile-form">
+
+
+                    <label>
+                        Company name
+                    </label>
+
+                    <input
+                        id="profileCompanyName"
+                        type="text"
+                    >
+
+
+                    <label>
+                        Industry
+                    </label>
+
+                    <input
+                        id="profileIndustry"
+                        type="text"
+                    >
+
+
+                    <label>
+                        Company size
+                    </label>
+
+                    <input
+                        id="profileCompanySize"
+                        type="text"
+                    >
+
+
+                    <label>
+                        Website
+                    </label>
+
+                    <input
+                        id="profileWebsite"
+                        type="url"
+                    >
+
+
+                    <button
+                        id="saveProfileButton"
+                        class="primary-button"
+                    >
+
+                        Save changes
+
+                    </button>
+
+
+                    <p
+                        id="profileMessage"
+                        class="form-message"
+                    ></p>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================
+             SETTINGS
+        ================================== -->
+
+        <section
+            id="settingsSection"
+            class="dashboard-section"
+        >
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        COMPANY
+                    </p>
+
+                    <h1>
+                        Settings
+                    </h1>
+
+                    <p>
+                        Manage your Orion workspace.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel settings-list">
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <strong>
+                            Company workspace
+                        </strong>
+
+                        <p>
+                            Manage your organization settings.
+                        </p>
+
+                    </div>
+
+                    <span class="status-badge">
+                        Active
+                    </span>
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <strong>
+                            AI onboarding
+                        </strong>
+
+                        <p>
+                            Personalized onboarding is enabled.
+                        </p>
+
+                    </div>
+
+                    <span class="status-badge">
+                        Enabled
+                    </span>
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <strong>
+                            Account
+                        </strong>
+
+                        <p>
+                            Manage your company account.
+                        </p>
+
+                    </div>
+
+                    <button
+                        id="settingsLogoutButton"
+                        class="danger-button"
+                    >
+
+                        Log out
+
+                    </button>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- =========================================
+     ADD EMPLOYEE MODAL
+========================================= -->
+
+<div
+    id="employeeModal"
+    class="modal"
+>
+
+    <div class="modal-card">
+
+
+        <button
+            class="modal-close"
+            data-close-modal
+            type="button"
+        >
+            ×
+        </button>
+
+
+        <p class="eyebrow">
+            ADD EMPLOYEE
+        </p>
+
+
+        <h2>
+            Add an employee
+        </h2>
+
+
+        <p>
+            Create an employee account for your organization.
+        </p>
+
+
+        <form id="employeeForm">
+
+
+            <!-- EMPLOYEE NAME -->
+
+            <label for="employeeName">
+                Employee name
+            </label>
+
+            <input
+                id="employeeName"
+                type="text"
+                placeholder="Enter employee name"
+                required
+            >
+
+
+            <!-- EMPLOYEE EMAIL -->
+
+            <label for="employeeEmail">
+                Employee email
+            </label>
+
+            <input
+                id="employeeEmail"
+                type="email"
+                placeholder="employee@company.com"
+                required
+            >
+
+
+            <!-- EMPLOYEE PASSWORD -->
+
+            <label for="employeePassword">
+                Password
+            </label>
+
+            <input
+                id="employeePassword"
+                type="password"
+                placeholder="Set employee password"
+                minlength="6"
+                required
+            >
+
+
+            <!-- DEPARTMENT -->
+
+<label for="employeeDepartment">
+    Department
+</label>
+
+<select
+    id="employeeDepartment"
+    required
+>
+    <option value="">
+        Select a department
+    </option>
+</select>
+
+
+            <!-- CREATE BUTTON -->
+
+            <button
+                type="submit"
+                id="createEmployeeButton"
+                class="primary-button full-width"
+            >
+
+                Create employee account
+
+            </button>
+
+
+            <!-- MESSAGE -->
+
+            <p
+                id="employeeMessage"
+                class="form-message"
+            ></p>
+
+
+        </form>
+
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     ADD DEPARTMENT MODAL
+========================================= -->
+
+<div
+    id="departmentModal"
+    class="modal"
+>
+
+    <div class="modal-card">
+
+
+        <button
+            class="modal-close"
+            data-close-modal
+        >
+            ×
+        </button>
+
+
+        <p class="eyebrow">
+            ORGANIZATION
+        </p>
+
+
+        <h2>
+            Add a department
+        </h2>
+
+
+        <form id="departmentForm">
+
+
+            <label>
+                Department name
+            </label>
+
+            <input
+                id="departmentName"
+                type="text"
+                required
+            >
+
+
+            <label>
+                Description
+            </label>
+
+            <textarea
+                id="departmentDescription"
+            ></textarea>
+
+
+            <button
+                type="submit"
+                class="primary-button full-width"
+            >
+
+                Create department
+
+            </button>
+
+
+            <p
+                id="departmentMessage"
+                class="form-message"
+            ></p>
+
+
+        </form>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================
+     PROJECT MODAL
+========================================= -->
+
+<div id="projectModal" class="modal">
+    <div class="modal-card project-modal-card">
+        <button class="modal-close" data-close-project-modal type="button">×</button>
+        <p class="eyebrow">WORKSPACE</p>
+        <h2 id="projectModalTitle">Create project</h2>
+        <form id="projectForm">
+            <input id="projectId" type="hidden">
+            <label for="projectName">Project name</label>
+            <input id="projectName" type="text" required>
+            <label for="projectProblemStatement">Problem statement</label>
+            <textarea id="projectProblemStatement" required></textarea>
+            <label for="projectDescription">Description</label>
+            <textarea id="projectDescription"></textarea>
+            <label for="projectDeadline">Deadline</label>
+            <input id="projectDeadline" type="date">
+            <label>Assigned employees</label>
+            <div id="projectEmployeePicker" class="project-employee-picker"></div>
+            <button id="saveProjectButton" type="submit" class="primary-button full-width">Save Project</button>
+            <p id="projectMessage" class="form-message"></p>
+        </form>
+    </div>
+</div>
+
+<div id="companyProjectDetailsModal" class="modal">
+    <div class="modal-card project-modal-card">
+        <button class="modal-close" data-close-company-project-details type="button">×</button>
+        <div id="companyProjectDetails"></div>
+    </div>
+</div>
+
+<!-- =========================================
+     ONBOARDING SETUP MODAL
+========================================= -->
+
+<div id="onboardingSetupModal" class="modal onboarding-modal">
+
+    <div class="modal-card onboarding-modal-card">
+
+        <!-- CLOSE -->
+        <button class="modal-close" id="closeOnboardingModal" type="button">×</button>
+
+        <!-- STEP 1: SETUP FORM -->
+        <div id="onboardingStep1" class="onboarding-step active">
+
+            <p class="eyebrow">ORION AI ONBOARDING</p>
+            <h2>Set up onboarding</h2>
+            <p class="modal-sub">Define what you expect from this employee so Orion AI can generate a personalized roadmap.</p>
+
+            <!-- EMPLOYEE INFO (Read-only) -->
+            <div class="ob-employee-card" id="obEmployeeCard">
+                <div class="ob-employee-avatar" id="obEmployeeAvatar">?</div>
+                <div class="ob-employee-details">
+                    <strong id="obEmployeeName">Loading...</strong>
+                    <span id="obEmployeeRole">Role not specified</span>
+                    <span id="obEmployeeExp">Experience: —</span>
+                </div>
+                <div class="ob-employee-skills" id="obEmployeeSkills"></div>
+            </div>
+
+            <!-- COMPANY CONTEXT -->
+            <label class="ob-label" for="obCompanyContext">
+                Company context
+                <small>What should this employee know about the company, team, product, codebase, and environment?</small>
+            </label>
+            <textarea
+                id="obCompanyContext"
+                class="ob-textarea"
+                rows="4"
+                placeholder="e.g. Our backend is built on Node.js and PostgreSQL. The team uses GitHub for code reviews and Slack for communication..."
+            ></textarea>
+
+            <!-- COMPANY EXPECTATIONS -->
+            <label class="ob-label">
+                Company expectations
+                <small>What do you expect this employee to accomplish during onboarding?</small>
+            </label>
+
+            <div id="expectationsList" class="ob-tags-list"></div>
+
+            <div class="ob-add-row">
+                <input
+                    type="text"
+                    id="expectationInput"
+                    class="ob-tag-input"
+                    placeholder="e.g. Understand the authentication system..."
+                >
+                <button type="button" id="addExpectationBtn" class="secondary-button ob-add-btn">+ Add</button>
+            </div>
+
+            <!-- ONBOARDING GOALS -->
+            <label class="ob-label">
+                Onboarding goals
+                <small>What outcomes define a successful onboarding for this employee?</small>
+            </label>
+
+            <div id="goalsList" class="ob-tags-list"></div>
+
+            <div class="ob-add-row">
+                <input
+                    type="text"
+                    id="goalInput"
+                    class="ob-tag-input"
+                    placeholder="e.g. Deploy their first feature independently..."
+                >
+                <button type="button" id="addGoalBtn" class="secondary-button ob-add-btn">+ Add</button>
+            </div>
+
+            <!-- ADDITIONAL INSTRUCTIONS -->
+            <label class="ob-label" for="obAdditionalInstructions">
+                Additional instructions
+                <small>Optional: any extra context for the AI.</small>
+            </label>
+            <textarea
+                id="obAdditionalInstructions"
+                class="ob-textarea"
+                rows="2"
+                placeholder="e.g. This employee has prior startup experience, so skip basic workflow explanations..."
+            ></textarea>
+
+            <!-- ACTIONS -->
+            <div class="ob-actions">
+                <button type="button" id="generateRoadmapBtn" class="primary-button ob-generate-btn">
+                    <span id="generateBtnIcon">✦</span>
+                    <span id="generateBtnText">Generate Roadmap with Orion AI</span>
+                </button>
+                <p id="generateMessage" class="form-message"></p>
+            </div>
+
+        </div>
+
+
+        <!-- STEP 2: ROADMAP REVIEWER -->
+        <div id="onboardingStep2" class="onboarding-step">
+
+            <div class="ob-reviewer-header">
+                <div>
+                    <p class="eyebrow">REVIEW ROADMAP</p>
+                    <h2 id="reviewerTitle">AI-Generated Onboarding Roadmap</h2>
+                    <p class="modal-sub" id="reviewerSubtitle">Review, edit, reorder, and approve the roadmap before the employee can see it.</p>
+                </div>
+                <div class="ob-reviewer-source" id="reviewerSourceBadge"></div>
+            </div>
+
+            <!-- TASK LIST -->
+            <div id="roadmapTaskList" class="ob-task-list"></div>
+
+            <!-- ADD TASK -->
+            <button type="button" id="addCustomTaskBtn" class="secondary-button ob-add-task-btn">
+                + Add custom task
+            </button>
+
+            <!-- REVIEWER ACTIONS -->
+            <div class="ob-reviewer-actions">
+                <button type="button" id="backToSetupBtn" class="text-button">← Back to setup</button>
+                <div class="ob-reviewer-right">
+                    <p id="approvalMessage" class="form-message"></p>
+                    <button type="button" id="approveRoadmapBtn" class="primary-button ob-approve-btn">
+                        ✓ Approve Roadmap
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- STEP 3: SUCCESS -->
+        <div id="onboardingStep3" class="onboarding-step">
+
+            <div class="ob-success">
+                <div class="ob-success-icon">✓</div>
+                <h2>Roadmap Approved!</h2>
+                <p id="successMessage">The onboarding roadmap has been approved and saved. The employee will now see it in their Orion dashboard.</p>
+                <button type="button" id="closeSuccessBtn" class="primary-button">Done</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+  <!-- Modal 1: Settings -->
+  <div id="modal-settings" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none;">
+    <div class="human-card max-w-md w-full p-6 space-y-5 shadow-2xl bg-white dark:bg-[#1C1A17] border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:480px; margin: auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">LM Studio Python SDK Settings</h3>
+        <button id="close-modal-settings" style="background:none; border:none; cursor:pointer;">×</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px; font-size:12px;">
+        <div>
+          <label for="setting-server-url" style="font-weight:700; display:block; margin-bottom:4px;">LM Studio Host / Port (e.g. localhost:1234)</label>
+          <input type="text" id="setting-server-url" class="human-input" style="width:100%; padding:8px; border-radius:8px;" value="localhost:1234" placeholder="localhost:1234">
+        </div>
+        <div>
+          <label for="setting-model-select" style="font-weight:700; display:block; margin-bottom:4px;">Model Identifier</label>
+          <div style="display:flex; gap:8px;">
+            <select id="setting-model-select" class="human-input" style="flex:1; padding:8px; border-radius:8px;">
+              <option value="local-model">Default Model (local-model)</option>
+            </select>
+            <button id="btn-fetch-models" class="btn-human-secondary" style="padding:8px 12px; font-size:12px;">Fetch</button>
+          </div>
+          <input type="text" id="setting-model-name" class="human-input" style="width:100%; padding:8px; border-radius:8px; margin-top:6px;" value="local-model" placeholder="Model name identifier">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="setting-structured-output" checked>
+          <label for="setting-structured-output" style="font-weight:600;">Enforce JSON Output Schema (`response_format`)</label>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div>
+            <label for="setting-temperature" style="font-weight:700; display:block; margin-bottom:4px;">Temperature (<span id="temp-val">0.2</span>)</label>
+            <input type="range" id="setting-temperature" min="0" max="1" step="0.05" value="0.2" style="width:100%;">
+          </div>
+          <div>
+            <label for="setting-max-tokens" style="font-weight:700; display:block; margin-bottom:4px;">Max Tokens</label>
+            <input type="number" id="setting-max-tokens" value="2048" class="human-input" style="width:100%; padding:8px; border-radius:8px;">
+          </div>
+        </div>
+        <div style="padding:12px; background:#F4F2EC; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span id="test-connection-status" style="font-weight:600; color:#78756C;">Status: Unverified</span>
+          <button id="btn-test-connection" class="btn-human-secondary" style="padding:6px 12px; font-size:12px;">Test Link</button>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+        <button id="btn-save-settings" class="btn-human-primary" style="padding:8px 16px; font-size:12px; background:#1C1B18; color:white; border-radius:8px; border:none; cursor:pointer;">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: System Prompt -->
+  <div id="modal-prompt" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none;">
+    <div class="human-card max-w-lg w-full p-6 space-y-4 shadow-2xl bg-white dark:bg-[#1C1A17] border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:540px; margin:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">Orion System Prompt</h3>
+        <button id="close-modal-prompt" style="background:none; border:none; cursor:pointer;">×</button>
+      </div>
+      <div style="margin-top:12px;">
+        <p style="font-size:12px; color:#78756C; font-style:italic; margin-bottom:8px;">System prompt template enforced by Orion to structure JSON output:</p>
+        <textarea id="system-prompt-text" rows="8" style="width:100%; padding:12px; font-family:monospace; font-size:11px; background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px;" readonly></textarea>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+        <button id="btn-copy-system-prompt" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Copy Prompt</button>
+        <button id="btn-close-prompt-modal" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Import JSON -->
+  <div id="modal-raw-json" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none;">
+    <div class="human-card max-w-lg w-full p-6 space-y-4 shadow-2xl bg-white dark:bg-[#1C1A17] border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:540px; margin:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">Import Onboarding JSON</h3>
+        <button id="close-modal-raw-json" style="background:none; border:none; cursor:pointer;">×</button>
+      </div>
+      <div style="margin-top:12px;">
+        <p style="font-size:12px; color:#78756C; font-style:italic; margin-bottom:8px;">Paste custom onboarding step JSON payload to directly import into the checklist manager:</p>
+        <textarea id="raw-json-input" rows="8" style="width:100%; padding:12px; font-family:monospace; font-size:11px; background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px;" placeholder='{\n  "steps": [\n    {\n      "step_no": 1,\n      "step_title": "Setup SSH Keys",\n      "step_instructions": "Upload public key to GitHub.",\n      "step_phase": "Day 1 Setup"\n    }\n  ]\n}'></textarea>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+        <button id="btn-format-json" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Format JSON</button>
+        <div style="display:flex; gap:8px;">
+          <button id="close-modal-raw-json-btn" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Cancel</button>
+          <button id="btn-render-raw-json" class="btn-human-primary" style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">Import Steps</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Add Custom Step -->
+  <div id="modal-add-step" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none;">
+    <div class="human-card max-w-md w-full p-6 space-y-4 shadow-2xl bg-white dark:bg-[#1C1A17] border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:480px; margin:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">Add Custom Onboarding Step</h3>
+        <button id="close-modal-add-step" style="background:none; border:none; cursor:pointer;">×</button>
+      </div>
+      <form id="add-step-form" style="display:flex; flex-direction:column; gap:12px; margin-top:12px; font-size:12px;">
+        <div>
+          <label for="new-step-title" style="font-weight:700; display:block; margin-bottom:4px;">Step Title</label>
+          <input type="text" id="new-step-title" required class="human-input" style="width:100%; padding:8px; border-radius:8px;" placeholder="e.g. Schedule 1-on-1 with Manager">
+        </div>
+        <div>
+          <label for="new-step-instructions" style="font-weight:700; display:block; margin-bottom:4px;">Instructions / Goal</label>
+          <textarea id="new-step-instructions" rows="3" required class="human-input" style="width:100%; padding:8px; border-radius:8px;" placeholder="e.g. Set up a 30-min intro sync to align on Q3 goals."></textarea>
+        </div>
+        <div>
+          <label for="new-step-phase" style="font-weight:700; display:block; margin-bottom:4px;">Phase / Category</label>
+          <select id="new-step-phase" class="human-input" style="width:100%; padding:8px; border-radius:8px;">
+            <option value="Day 1 Setup">Day 1 Setup</option>
+            <option value="Week 1 Goals">Week 1 Goals</option>
+            <option value="Security & Access">Security & Access</option>
+            <option value="Team Integration">Team Integration</option>
+            <option value="Architecture & Tools">Architecture & Tools</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+          <button type="button" id="btn-cancel-add-step" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Cancel</button>
+          <button type="submit" class="btn-human-primary" style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">Add Step</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Edit Step -->
+  <div id="modal-edit-step" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none;">
+    <div class="human-card max-w-md w-full p-6 space-y-4 shadow-2xl bg-white dark:bg-[#1C1A17] border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:480px; margin:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">Edit Onboarding Step</h3>
+        <button id="close-modal-edit-step" style="background:none; border:none; cursor:pointer;">×</button>
+      </div>
+      <form id="edit-step-form" style="display:flex; flex-direction:column; gap:12px; margin-top:12px; font-size:12px;">
+        <input type="hidden" id="edit-step-id">
+        <div>
+          <label for="edit-step-title" style="font-weight:700; display:block; margin-bottom:4px;">Step Title</label>
+          <input type="text" id="edit-step-title" required class="human-input" style="width:100%; padding:8px; border-radius:8px;">
+        </div>
+        <div>
+          <label for="edit-step-instructions" style="font-weight:700; display:block; margin-bottom:4px;">Instructions / Goal</label>
+          <textarea id="edit-step-instructions" rows="3" required class="human-input" style="width:100%; padding:8px; border-radius:8px;"></textarea>
+        </div>
+        <div>
+          <label for="edit-step-phase" style="font-weight:700; display:block; margin-bottom:4px;">Phase / Category</label>
+          <select id="edit-step-phase" class="human-input" style="width:100%; padding:8px; border-radius:8px;">
+            <option value="Day 1 Setup">Day 1 Setup</option>
+            <option value="Week 1 Goals">Week 1 Goals</option>
+            <option value="Security & Access">Security & Access</option>
+            <option value="Team Integration">Team Integration</option>
+            <option value="Architecture & Tools">Architecture & Tools</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+          <button type="button" id="btn-cancel-edit-step" class="btn-human-secondary" style="padding:6px 14px; font-size:12px;">Cancel</button>
+          <button type="submit" class="btn-human-primary" style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Animated Generation Toast Notification -->
+  <div id="generation-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 flex items-center space-x-3.5 bg-[#1C1B18] text-white px-5 py-4 rounded-2xl shadow-2xl border border-[#2A2925]" style="position:fixed; bottom:24px; right:24px; z-index:9999; background:#1C1B18; color:white; padding:16px 20px; border-radius:16px; display:flex; align-items:center; gap:12px; opacity:0; pointer-events:none; transition:all 0.3s ease;">
+    <div id="toast-icon-box" style="width:36px; height:36px; border-radius:12px; background:#D96B43; display:flex; align-items:center; justify-content:center; color:white;">
+      <i id="toast-spinner" data-lucide="sparkles" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <h4 id="toast-title" style="font-size:12px; font-weight:700;">Generating Workflow...</h4>
+      <p id="toast-message" style="font-size:11px; color:#A8A499; font-style:italic;">Constructing employee onboarding steps...</p>
+    </div>
+    <button id="toast-close" style="background:none; border:none; color:#78756C; cursor:pointer; margin-left:8px;">×</button>
+  </div>
+
+<!-- =========================================
+     SUPABASE
+========================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="../supabase-config.js"></script>
+
+<!-- Client-side extraction keeps uploaded document text searchable by Orion Mentor. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+
+
+<!-- =========================================
+     DASHBOARD JS
+========================================= -->
+
+<script src="company-dashboard.js"></script>
+
+
+</body>
+
+</html>

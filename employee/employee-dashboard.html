@@ -1,0 +1,2033 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Orion — Employee Dashboard</title>
+
+    <link rel="stylesheet" href="employee-dashboard.css">
+
+    <!-- Fonts & Icons CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;0,6..72,500;0,6..72,600;0,6..72,700;0,6..72,800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =========================================
+         SIDEBAR
+    ========================================== -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-top">
+
+            <a href="#" class="logo">
+                <div class="logo-mark">
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <span>orion</span>
+            </a>
+
+            <button class="mobile-close" id="closeSidebar">
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- MAIN NAVIGATION -->
+
+        <nav class="navigation">
+
+            <p class="nav-label">Workspace</p>
+
+            <button class="nav-item active" data-page="home">
+                <span class="nav-icon">⌂</span>
+                <span>Home</span>
+            </button>
+
+            <button class="nav-item" data-page="onboarding">
+                <span class="nav-icon">◷</span>
+                <span>My Onboarding</span>
+            </button>
+
+            <button class="nav-item" data-page="tiles">
+                <span class="nav-icon">⬡</span>
+                <span>Onboarding Tiles</span>
+            </button>
+
+            <button class="nav-item" data-page="knowledge">
+                <span class="nav-icon">⌕</span>
+                <span>Knowledge</span>
+            </button>
+
+            <button class="nav-item" data-page="mentor">
+                <span class="nav-icon">✦</span>
+                <span>Orion Mentor</span>
+            </button>
+
+            <p class="nav-label nav-label-spaced">People</p>
+
+            <button class="nav-item" data-page="team">
+                <span class="nav-icon">◎</span>
+                <span>My Team</span>
+            </button>
+
+            <button class="nav-item" data-page="projects">
+                <span class="nav-icon">◫</span>
+                <span>My Projects</span>
+            </button>
+
+        </nav>
+
+
+
+
+        <!-- USER -->
+
+        <div class="sidebar-user" id="profileButton">
+
+            <div class="avatar" id="userAvatar">
+                ?
+            </div>
+
+            <div class="user-info">
+
+                <strong id="sidebarUserName">
+                    Loading...
+                </strong>
+
+                <span id="sidebarUserEmail">
+                    Loading...
+                </span>
+
+            </div>
+
+            <span class="user-menu-icon">
+                ⋮
+            </span>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================================
+         MAIN
+    ========================================== -->
+
+    <main class="main">
+
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <button class="mobile-menu" id="openSidebar">
+                ☰
+            </button>
+
+
+            <div class="breadcrumb">
+
+                <span>Orion</span>
+
+                <span>/</span>
+
+                <strong id="currentPageName">
+                    Home
+                </strong>
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <!-- GLOBAL SEARCH -->
+
+                <button class="topbar-button" id="globalSearchButton">
+                    <span>⌕</span>
+                    <span class="search-label">Search</span>
+                    <kbd>⌘ K</kbd>
+                </button>
+
+
+                <!-- NOTIFICATIONS -->
+
+                <button
+                    class="icon-button"
+                    id="notificationButton"
+                    aria-label="Notifications">
+
+                    ♢
+
+                </button>
+
+
+                <!-- PROFILE -->
+
+                <button
+                    class="top-avatar"
+                    id="topAvatar">
+
+                    ?
+
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- =========================================
+             CONTENT
+        ========================================== -->
+
+        <div class="content">
+
+
+            <!-- =====================================
+                 ONBOARDING TILES
+                 UPDATED SECTION
+            ====================================== -->
+
+            <section class="page" id="page-tiles">
+
+                <!-- PAGE HEADER -->
+
+                <div class="section-header"
+                     style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            ONBOARDING TILES
+                        </p>
+
+                        <h1>
+                            Your Onboarding Tasks
+                        </h1>
+
+                        <p style="font-size:13px; color:#78756C;">
+                            Manage your personalized onboarding tasks, track your progress, and get AI-powered guidance.
+                        </p>
+
+                    </div>
+
+
+                    <div class="tiles-header-actions"
+                         style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+                        <div id="connection-pill"
+                             class="connection-pill-badge"
+                             style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;">
+
+                            <span id="status-dot"
+                                  class="pulse-dot"
+                                  style="width:8px; height:8px; border-radius:50%; background:#3B7A57;">
+                            </span>
+
+                            <span id="status-text">
+                                Tasks Ready
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ALERT -->
+
+                <div id="alert-banner"
+                     style="display:none; margin-bottom:20px; padding:14px; border-radius:12px; border:1px solid #E8E5DC; background:#FAF9F5; align-items:center; justify-content:space-between;">
+
+                    <div style="display:flex; align-items:center; gap:10px;">
+
+                        <i id="alert-icon"
+                           data-lucide="info"
+                           class="w-5 h-5"
+                           style="color:#D96B43;">
+                        </i>
+
+                        <div>
+
+                            <h4 id="alert-title"
+                                style="font-size:12px; font-weight:700; text-transform:uppercase;">
+                                Notification
+                            </h4>
+
+                            <p id="alert-message"
+                               style="font-size:12px; color:#54524B; margin-top:2px;">
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <button id="alert-close"
+                            style="background:none; border:none; cursor:pointer;">
+                        ×
+                    </button>
+
+                </div>
+
+                <!-- TASK CHECKLIST -->
+
+                <div class="human-card"
+                     style="padding:24px; border-radius:18px;">
+
+                    <!-- TOOLBAR -->
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+
+                        <div style="display:flex; align-items:center; gap:12px;">
+
+                            <div>
+
+                                <h3 style="font-size:18px; font-weight:800;">
+                                    My Onboarding Tasks
+                                </h3>
+
+                                <p style="font-size:11px; color:#78756C; margin-top:3px;">
+                                    Complete tasks to update your onboarding progress.
+                                </p>
+
+                            </div>
+
+                            <span id="step-count-badge"
+                                  style="padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:#F4F2EC; color:#54524B; border:1px solid #E8E5DC;">
+
+                                0 Steps
+
+                            </span>
+
+                        </div>
+
+
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+
+                            <!-- SEARCH -->
+
+                            <div style="position:relative; width:200px;">
+
+                                <input type="text"
+                                       id="search-input"
+                                       placeholder="Search tasks..."
+                                       class="human-input"
+                                       style="width:100%; padding:6px 12px 6px 30px; font-size:12px; border-radius:10px;">
+
+                                <i data-lucide="search"
+                                   class="w-3.5 h-3.5"
+                                   style="position:absolute; left:10px; top:8px; color:#8C887D;">
+                                </i>
+
+                            </div>
+
+
+                            <!-- VIEW SWITCHER -->
+
+                            <div style="display:flex; background:#F4F2EC; padding:3px; border-radius:10px; border:1px solid #E8E5DC;">
+
+                                <button id="view-grid"
+                                        style="padding:6px 10px; border:none; background:white; border-radius:8px; cursor:pointer; font-weight:700; font-size:12px;"
+                                        title="Grid View">
+
+                                    <i data-lucide="layout-grid"
+                                       class="w-4 h-4">
+                                    </i>
+
+                                </button>
+
+
+                                <button id="view-list"
+                                        style="padding:6px 10px; border:none; background:transparent; color:#78756C; border-radius:8px; cursor:pointer; font-weight:600; font-size:12px;"
+                                        title="List View">
+
+                                    <i data-lucide="list"
+                                       class="w-4 h-4">
+                                    </i>
+
+                                </button>
+
+                            </div>
+
+
+                            <!-- FILTER -->
+
+                            <div style="display:flex; background:#F4F2EC; padding:3px; border-radius:10px; border:1px solid #E8E5DC;">
+
+                                <button id="filter-all"
+                                        style="padding:6px 12px; border:none; background:#1C1B18; color:white; border-radius:8px; cursor:pointer; font-weight:600; font-size:11px;">
+
+                                    All
+
+                                </button>
+
+
+                                <button id="filter-pending"
+                                        style="padding:6px 12px; border:none; background:transparent; color:#78756C; border-radius:8px; cursor:pointer; font-weight:600; font-size:11px;">
+
+                                    Pending
+
+                                </button>
+
+
+                                <button id="filter-completed"
+                                        style="padding:6px 12px; border:none; background:transparent; color:#78756C; border-radius:8px; cursor:pointer; font-weight:600; font-size:11px;">
+
+                                    Completed
+
+                                </button>
+
+                            </div>
+
+
+                       
+
+
+                            <!-- SELECT ALL -->
+
+                            <button id="btn-check-all"
+                                    class="btn-human-secondary"
+                                    style="padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+
+                                <i data-lucide="check-square"
+                                   class="w-3.5 h-3.5"
+                                   style="color:#3B7A57;">
+                                </i>
+
+                                <span id="select-all-label">
+                                    Complete All
+                                </span>
+
+                            </button>
+
+
+                            <!-- EXPORT -->
+
+                            <button id="btn-export-markdown"
+                                    class="btn-human-secondary"
+                                    style="padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+
+                                <i data-lucide="download"
+                                   class="w-3.5 h-3.5"
+                                   style="color:#78756C;">
+                                </i>
+
+                                <span>
+                                    Export
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- TASK GRID -->
+
+                    <div id="tiles-grid"
+                         class="tiles-grid-container"
+                         style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px;">
+
+                        <div class="col-span-full human-card p-12 text-center space-y-4"
+                             style="grid-column:1/-1; padding:48px; text-align:center;">
+
+                            <div style="width:56px; height:56px; border-radius:16px; background:#FAE8E1; border:1px solid #F5D2C5; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; color:#D96B43;">
+
+                                <i data-lucide="compass"
+                                   class="w-7 h-7">
+                                </i>
+
+                            </div>
+
+
+                            <h4 style="font-size:18px; font-weight:700;">
+                                Ready to Onboard
+                            </h4>
+
+
+                            <p style="font-size:12px; color:#78756C; font-style:italic; max-width:400px; margin:8px auto 16px;">
+
+                                Generate your personalized onboarding tasks or add your own tasks to get started.
+
+                            </p>
+
+
+                            <button id="btn-load-demo-cards"
+                                    class="btn-human-secondary"
+                                    style="padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer;">
+
+                                <i data-lucide="play"
+                                   class="w-3.5 h-3.5"
+                                   style="color:#D96B43; margin-right:6px;">
+                                </i>
+
+                                <span>
+                                    Load Demo Checklist Steps
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 HOME
+            ====================================== -->
+
+            <section class="page active"
+                     id="page-home">
+
+                <div class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR WORKSPACE
+                        </p>
+
+                        <h1 id="welcomeTitle">
+                            Welcome
+                        </h1>
+
+                        <p class="page-description">
+                            Your onboarding journey starts here.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ONBOARDING OVERVIEW -->
+
+                <div class="overview-card">
+
+                    <div class="overview-content">
+
+                        <div>
+
+                            <span class="card-label">
+                                ONBOARDING PROGRESS
+                            </span>
+
+                            <h2 id="onboardingProgressText">
+                                Your onboarding journey
+                            </h2>
+
+                            <p id="onboardingProgressDescription">
+                                Your company will add your onboarding roadmap here.
+                            </p>
+
+                        </div>
+
+
+                        <div class="progress-circle">
+
+                            <span id="progressPercentage">
+                                —
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="progress-bar">
+
+                        <div class="progress-fill"
+                             id="progressBar">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- GRID -->
+
+                <div class="dashboard-grid">
+
+
+                    <!-- TODAY -->
+
+                    <div class="dashboard-card large-card">
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <span class="card-label">
+                                    TODAY
+                                </span>
+
+                                <h3>
+                                    Today's focus
+                                </h3>
+
+                            </div>
+
+                            <button class="text-button"
+                                    data-page="onboarding">
+
+                                View roadmap →
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="empty-state"
+                             id="todayTasks">
+
+                            <div class="empty-icon">
+                                ○
+                            </div>
+
+                            <h4>
+                                Nothing assigned yet
+                            </h4>
+
+                            <p>
+                                Your company will add your onboarding tasks here.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- QUICK ACCESS -->
+
+                    <div class="dashboard-card">
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <span class="card-label">
+                                    QUICK ACCESS
+                                </span>
+
+                                <h3>
+                                    Get started
+                                </h3>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="quick-actions">
+
+                            <button data-page="knowledge">
+                                <span>⌕</span>
+                                Search knowledge
+                            </button>
+
+
+                            <button data-page="mentor">
+                                <span>✦</span>
+                                Ask Orion Mentor
+                            </button>
+
+
+                            
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ORION MENTOR -->
+
+                <div class="dashboard-card">
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <span class="card-label">
+                                ORION MENTOR
+                            </span>
+
+                            <h3>
+                                Need an answer?
+                            </h3>
+
+                        </div>
+
+                        <button class="text-button"
+                                data-page="mentor">
+
+                            Ask Orion →
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="empty-state horizontal-empty">
+
+                        <div class="empty-icon">
+                            ✦
+                        </div>
+
+                        <div>
+
+                            <h4>
+                                Your company-aware AI assistant
+                            </h4>
+
+                            <p>
+                                Ask about onboarding, work, or your company's knowledge.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </section>
+
+
+            <!-- =====================================
+                 ONBOARDING
+            ====================================== -->
+
+            <section class="page"
+                     id="page-onboarding">
+
+                <div class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR JOURNEY
+                        </p>
+
+                        <h1>
+                            My Onboarding
+                        </h1>
+
+                        <p class="page-description">
+                            Follow your personalized onboarding roadmap.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="roadmap-container">
+
+
+                    <div class="roadmap-header">
+
+                        <div>
+
+                            <span class="card-label">
+                                ONBOARDING ROADMAP
+                            </span>
+
+                            <h2 id="roadmapTitle">
+                                Your journey
+                            </h2>
+
+                        </div>
+
+                        <div class="roadmap-progress"
+                             id="roadmapProgress">
+
+                            —
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- PROGRESS BAR -->
+
+                    <div class="roadmap-progress-bar-wrap"
+                         id="roadmapProgressBarWrap"
+                         style="display:none;">
+
+                        <div class="roadmap-progress-bar-inner"
+                             id="roadmapProgressBarInner">
+                        </div>
+
+                    </div>
+
+
+                    <div class="roadmap"
+                         id="roadmap">
+
+                        <div class="empty-state"
+                             id="roadmapEmptyState">
+
+                            <div class="empty-icon">
+                                ◷
+                            </div>
+
+                            <h4>
+                                Your roadmap isn't ready yet
+                            </h4>
+
+                            <p>
+                                Your company will create your personalized onboarding roadmap here.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 KNOWLEDGE
+            ====================================== -->
+
+            <section class="page"
+                     id="page-knowledge">
+
+                <div class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            COMPANY KNOWLEDGE
+                        </p>
+
+                        <h1>
+                            Knowledge
+                        </h1>
+
+                        <p class="page-description">
+                            Search your company's connected knowledge.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="knowledge-search">
+
+                    <span>
+                        ⌕
+                    </span>
+
+                    <input type="text"
+                           id="knowledgeSearch"
+                           placeholder="Search company knowledge...">
+
+                    <kbd>
+                        Enter
+                    </kbd>
+
+                </div>
+
+
+                <div class="knowledge-filters">
+
+                    <button class="filter active" data-knowledge-filter="all">
+                        All
+                    </button>
+
+                    <button class="filter" data-knowledge-filter="github">
+                        GitHub
+                    </button>
+
+                    <button class="filter" data-knowledge-filter="notion">
+                        Notion
+                    </button>
+
+                    <button class="filter" data-knowledge-filter="slack">
+                        Slack
+                    </button>
+
+                    <button class="filter" data-knowledge-filter="teams">
+                        Teams
+                    </button>
+
+                    <button class="filter" data-knowledge-filter="documents">
+                        Documents
+                    </button>
+
+                </div>
+
+
+                <div class="knowledge-results"
+                     id="knowledgeResults">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ⌕
+                        </div>
+
+                        <h4>
+                            Your knowledge base is empty
+                        </h4>
+
+                        <p>
+                            Company documentation and connected sources will appear here once your organization sets them up.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 MENTOR
+            ====================================== -->
+
+            <section class="page"
+                     id="page-mentor">
+
+                <div class="mentor-page">
+
+                    <div class="mentor-header">
+
+                        <div class="mentor-icon">
+                            ✦
+                        </div>
+
+                        <p class="eyebrow">
+                            YOUR AI GUIDE
+                        </p>
+
+                        <h1>
+                            Orion Mentor
+                        </h1>
+
+                        <p>
+                            Ask Orion anything about your work, onboarding, or company.
+                        </p>
+
+                    </div>
+
+
+                    <div class="mentor-chat">
+
+                        <div class="chat-messages"
+                             id="chatMessages">
+
+                            <div class="mentor-empty">
+
+                                <div class="empty-icon">
+                                    ✦
+                                </div>
+
+                                <h3>
+                                    Ask Orion anything
+                                </h3>
+
+                                <p>
+                                    Orion prioritizes your company's knowledge when answering company-specific questions.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="chat-input-container">
+
+                            <textarea id="mentorInput"
+                                      placeholder="Ask Orion anything..."
+                                      rows="1">
+                            </textarea>
+
+                            <button id="sendMentorMessage">
+                                ↑
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 TEAM
+            ====================================== -->
+
+            <section class="page"
+                     id="page-team">
+
+                <div class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR PEOPLE
+                        </p>
+
+                        <h1>
+                            My Team
+                        </h1>
+
+                        <p class="page-description">
+                            Get to know the people you work with.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="team-grid"
+                     id="teamGrid">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ◎
+                        </div>
+
+                        <h4>
+                            Your team isn't available yet
+                        </h4>
+
+                        <p>
+                            Team information will appear here when your company sets up your organization.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =====================================
+                 PROJECTS
+            ====================================== -->
+
+            <section class="page"
+                     id="page-projects">
+
+                <div class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR WORK
+                        </p>
+
+                        <h1>
+                            My Projects
+                        </h1>
+
+                        <p class="page-description">
+                            Projects you have been assigned to.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="projects-grid"
+                     id="employeeProjectsGrid">
+
+                    <div class="empty-state">
+
+                        <div class="empty-icon">
+                            ↗
+                        </div>
+
+                        <h4>
+                            You have not been assigned to any projects yet.
+                        </h4>
+
+                        <p>
+                            Projects assigned by your company will appear here.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+
+        <!-- =========================================
+             PROFILE PANEL
+        ========================================== -->
+
+        <div class="profile-overlay"
+             id="profileOverlay">
+
+            <div class="profile-panel">
+
+                <div class="profile-panel-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            YOUR PROFILE
+                        </p>
+
+                        <h2>
+                            Profile
+                        </h2>
+
+                    </div>
+
+                    <button id="closeProfile"
+                            class="profile-close">
+
+                        ×
+
+                    </button>
+
+                </div>
+
+
+                <!-- PROFILE AVATAR -->
+
+                <div class="profile-main">
+
+                    <div class="profile-large-avatar"
+                         id="profileAvatar">
+
+                        ?
+
+                    </div>
+
+                    <div>
+
+                        <h3 id="profileName">
+                            Loading...
+                        </h3>
+
+                        <p id="profileEmail">
+                            Loading...
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROFILE DETAILS -->
+
+                <div class="profile-details">
+
+                    <div class="profile-field">
+
+                        <span>
+                            Full Name
+                        </span>
+
+                        <strong id="profileFullName">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span>
+                            Role
+                        </span>
+
+                        <strong id="profileRole">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span>
+                            Experience Level
+                        </span>
+
+                        <strong id="profileExperience">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span>
+                            Technical Skills
+                        </span>
+
+                        <div class="profile-tags"
+                             id="profileSkills">
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span>
+                            Onboarding Goals
+                        </span>
+
+                        <div class="profile-tags"
+                             id="profileGoals">
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span>
+                            Additional Information
+                        </span>
+
+                        <p id="profileAdditionalInfo">
+                            —
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <button class="profile-logout"
+                        id="logoutButton">
+
+                    Sign out
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =========================================
+     MOBILE BOTTOM NAV
+========================================== -->
+
+<nav class="mobile-nav">
+
+    <button data-page="home">
+        <span>⌂</span>
+        Home
+    </button>
+
+    <button data-page="onboarding">
+        <span>◷</span>
+        Onboarding
+    </button>
+
+    <button data-page="knowledge">
+        <span>⌕</span>
+        Knowledge
+    </button>
+
+    <button data-page="mentor">
+        <span>✦</span>
+        Mentor
+    </button>
+
+</nav>
+
+
+<div id="employeeProjectDetailsModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+    <div class="human-card max-w-md w-full p-6 shadow-2xl bg-white border border-[#E8E5DC]" style="padding:24px; background:white; border-radius:18px; max-width:680px; max-height:90vh; overflow:auto; margin:auto; position:relative;">
+        <button id="closeEmployeeProjectDetails" type="button" style="position:absolute; right:16px; top:12px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+        <div id="employeeProjectDetails"></div>
+    </div>
+</div>
+
+<!-- =========================================
+     MODAL 1: SETTINGS
+========================================== -->
+
+<div id="modal-settings"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-md w-full p-6 space-y-5 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:480px; margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">
+                LM Studio Direct API Settings
+            </h3>
+
+            <button id="close-modal-settings"
+                    style="background:none; border:none; cursor:pointer;">
+                ×
+            </button>
+
+        </div>
+
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px; font-size:12px;">
+
+            <div>
+
+                <label for="setting-server-url"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    LM Studio Endpoint URL (e.g. http://localhost:1234/v1)
+
+                </label>
+
+                <input type="text"
+                       id="setting-server-url"
+                       class="human-input"
+                       style="width:100%; padding:8px; border-radius:8px;"
+                       value="http://localhost:1234/v1"
+                       placeholder="http://localhost:1234/v1">
+
+            </div>
+
+
+            <div>
+
+                <label for="setting-model-name"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Model Identifier
+
+                </label>
+
+                <input type="text"
+                       id="setting-model-name"
+                       class="human-input"
+                       style="width:100%; padding:8px; border-radius:8px;"
+                       value="qwen2.5-coder-0.5b-instruct"
+                       placeholder="Model name identifier">
+
+            </div>
+
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+                <div>
+
+                    <label for="setting-temperature"
+                           style="font-weight:700; display:block; margin-bottom:4px;">
+
+                        Temperature
+
+                    </label>
+
+                    <input type="number"
+                           id="setting-temperature"
+                           step="0.1"
+                           value="0.2"
+                           class="human-input"
+                           style="width:100%; padding:8px; border-radius:8px;">
+
+                </div>
+
+
+                <div>
+
+                    <label for="setting-max-tokens"
+                           style="font-weight:700; display:block; margin-bottom:4px;">
+
+                        Max Tokens
+
+                    </label>
+
+                    <input type="number"
+                           id="setting-max-tokens"
+                           value="2048"
+                           class="human-input"
+                           style="width:100%; padding:8px; border-radius:8px;">
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div style="display:flex; justify-content:flex-end; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+
+            <button id="btn-save-settings"
+                    class="btn-human-primary"
+                    style="padding:8px 16px; font-size:12px; background:#1C1B18; color:white; border-radius:8px; border:none; cursor:pointer;">
+
+                Save Settings
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     MODAL 2: SYSTEM PROMPT
+========================================== -->
+
+<div id="modal-prompt"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-lg w-full p-6 space-y-4 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:540px; margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">
+                Orion System Prompt
+            </h3>
+
+            <button id="close-modal-prompt"
+                    style="background:none; border:none; cursor:pointer;">
+                ×
+            </button>
+
+        </div>
+
+
+        <div style="margin-top:12px;">
+
+            <p style="font-size:12px; color:#78756C; font-style:italic; margin-bottom:8px;">
+
+                System prompt template used to structure JSON output:
+
+            </p>
+
+            <textarea id="system-prompt-text"
+                      rows="8"
+                      style="width:100%; padding:12px; font-family:monospace; font-size:11px; background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px;"
+                      readonly>
+            </textarea>
+
+        </div>
+
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+
+            <button id="btn-copy-system-prompt"
+                    class="btn-human-secondary"
+                    style="padding:6px 14px; font-size:12px;">
+
+                Copy Prompt
+
+            </button>
+
+
+            <button id="btn-close-prompt-modal"
+                    class="btn-human-secondary"
+                    style="padding:6px 14px; font-size:12px;">
+
+                Close
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     MODAL 3: IMPORT JSON
+========================================== -->
+
+<div id="modal-raw-json"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-lg w-full p-6 space-y-4 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:540px; margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">
+                Import Onboarding JSON
+            </h3>
+
+            <button id="close-modal-raw-json"
+                    style="background:none; border:none; cursor:pointer;">
+                ×
+            </button>
+
+        </div>
+
+
+        <div style="margin-top:12px;">
+
+            <p style="font-size:12px; color:#78756C; font-style:italic; margin-bottom:8px;">
+
+                Paste custom onboarding step JSON payload to directly import into your checklist:
+
+            </p>
+
+            <textarea id="raw-json-input"
+                      rows="8"
+                      style="width:100%; padding:12px; font-family:monospace; font-size:11px; background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px;"
+                      placeholder='{
+  "steps": [
+    {
+      "step_no": 1,
+      "step_title": "Setup SSH Keys",
+      "step_instructions": "Upload public key to GitHub.",
+      "step_phase": "Day 1 Setup"
+    }
+  ]
+}'>
+            </textarea>
+
+        </div>
+
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+
+            <button id="btn-format-json"
+                    class="btn-human-secondary"
+                    style="padding:6px 14px; font-size:12px;">
+
+                Format JSON
+
+            </button>
+
+
+            <div style="display:flex; gap:8px;">
+
+                <button id="close-modal-raw-json-btn"
+                        class="btn-human-secondary"
+                        style="padding:6px 14px; font-size:12px;">
+
+                    Cancel
+
+                </button>
+
+
+                <button id="btn-render-raw-json"
+                        class="btn-human-primary"
+                        style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">
+
+                    Import Steps
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     MODAL 4: ADD CUSTOM STEP
+========================================== -->
+
+<div id="modal-add-step"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-md w-full p-6 space-y-4 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:480px; margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">
+                Add Custom Step
+            </h3>
+
+            <button id="close-modal-add-step"
+                    style="background:none; border:none; cursor:pointer;">
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="add-step-form"
+              style="display:flex; flex-direction:column; gap:12px; margin-top:12px; font-size:12px;">
+
+            <div>
+
+                <label for="new-step-title"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Step Title
+
+                </label>
+
+                <input type="text"
+                       id="new-step-title"
+                       required
+                       class="human-input"
+                       style="width:100%; padding:8px; border-radius:8px;"
+                       placeholder="e.g. Schedule 1-on-1 with Manager">
+
+            </div>
+
+
+            <div>
+
+                <label for="new-step-instructions"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Instructions / Goal
+
+                </label>
+
+                <textarea id="new-step-instructions"
+                          rows="3"
+                          required
+                          class="human-input"
+                          style="width:100%; padding:8px; border-radius:8px;"
+                          placeholder="e.g. Set up a 30-min intro sync to align on Q3 goals.">
+                </textarea>
+
+            </div>
+
+
+            <div>
+
+                <label for="new-step-phase"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Phase / Category
+
+                </label>
+
+                <select id="new-step-phase"
+                        class="human-input"
+                        style="width:100%; padding:8px; border-radius:8px;">
+
+                    <option value="Day 1 Setup">
+                        Day 1 Setup
+                    </option>
+
+                    <option value="Week 1 Goals">
+                        Week 1 Goals
+                    </option>
+
+                    <option value="Security & Access">
+                        Security & Access
+                    </option>
+
+                    <option value="Team Integration">
+                        Team Integration
+                    </option>
+
+                    <option value="Architecture & Tools">
+                        Architecture & Tools
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+
+                <button type="button"
+                        id="btn-cancel-add-step"
+                        class="btn-human-secondary"
+                        style="padding:6px 14px; font-size:12px;">
+
+                    Cancel
+
+                </button>
+
+
+                <button type="submit"
+                        class="btn-human-primary"
+                        style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">
+
+                    Add Step
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     MODAL 5: EDIT STEP
+========================================== -->
+
+<div id="modal-edit-step"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-md w-full p-6 space-y-4 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:480px; margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <h3 style="font-size:14px; font-weight:700; text-transform:uppercase;">
+                Edit Step
+            </h3>
+
+            <button id="close-modal-edit-step"
+                    style="background:none; border:none; cursor:pointer;">
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="edit-step-form"
+              style="display:flex; flex-direction:column; gap:12px; margin-top:12px; font-size:12px;">
+
+            <input type="hidden"
+                   id="edit-step-id">
+
+
+            <div>
+
+                <label for="edit-step-title"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Step Title
+
+                </label>
+
+                <input type="text"
+                       id="edit-step-title"
+                       required
+                       class="human-input"
+                       style="width:100%; padding:8px; border-radius:8px;">
+
+            </div>
+
+
+            <div>
+
+                <label for="edit-step-instructions"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Instructions / Goal
+
+                </label>
+
+                <textarea id="edit-step-instructions"
+                          rows="3"
+                          required
+                          class="human-input"
+                          style="width:100%; padding:8px; border-radius:8px;">
+                </textarea>
+
+            </div>
+
+
+            <div>
+
+                <label for="edit-step-phase"
+                       style="font-weight:700; display:block; margin-bottom:4px;">
+
+                    Phase / Category
+
+                </label>
+
+                <select id="edit-step-phase"
+                        class="human-input"
+                        style="width:100%; padding:8px; border-radius:8px;">
+
+                    <option value="Day 1 Setup">
+                        Day 1 Setup
+                    </option>
+
+                    <option value="Week 1 Goals">
+                        Week 1 Goals
+                    </option>
+
+                    <option value="Security & Access">
+                        Security & Access
+                    </option>
+
+                    <option value="Team Integration">
+                        Team Integration
+                    </option>
+
+                    <option value="Architecture & Tools">
+                        Architecture & Tools
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid #E8E5DC; padding-top:12px;">
+
+                <button type="button"
+                        id="btn-cancel-edit-step"
+                        class="btn-human-secondary"
+                        style="padding:6px 14px; font-size:12px;">
+
+                    Cancel
+
+                </button>
+
+
+                <button type="submit"
+                        class="btn-human-primary"
+                        style="padding:6px 14px; font-size:12px; background:#1C1B18; color:white; border:none; border-radius:8px;">
+
+                    Save Changes
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================
+     GENERATION TOAST
+========================================== -->
+
+<div id="generation-toast"
+     style="position:fixed; bottom:24px; right:24px; z-index:9999; background:#1C1B18; color:white; padding:16px 20px; border-radius:16px; display:flex; align-items:center; gap:12px; opacity:0; pointer-events:none; transition:all 0.3s ease;">
+
+    <div id="toast-icon-box"
+         style="width:36px; height:36px; border-radius:12px; background:#D96B43; display:flex; align-items:center; justify-content:center; color:white;">
+
+        <i id="toast-spinner"
+           data-lucide="sparkles"
+           class="w-5 h-5">
+        </i>
+
+    </div>
+
+
+    <div>
+
+        <h4 id="toast-title"
+            style="font-size:12px; font-weight:700;">
+
+            Generating Tasks...
+
+        </h4>
+
+        <p id="toast-message"
+           style="font-size:11px; color:#A8A499; font-style:italic;">
+
+            Constructing onboarding steps...
+
+        </p>
+
+    </div>
+
+
+    <button id="toast-close"
+            style="background:none; border:none; color:#78756C; cursor:pointer; margin-left:8px;">
+
+        ×
+
+    </button>
+
+</div>
+
+
+<!-- =========================================
+     MODAL 6: TASK DETAIL & AI GUIDANCE
+========================================== -->
+
+<div id="modal-task-guidance"
+     class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden opacity-0 transition-opacity"
+     style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.5); backdrop-filter:blur(6px); justify-content:center; align-items:center;">
+
+    <div class="human-card max-w-lg w-full p-6 space-y-4 shadow-2xl bg-white border border-[#E8E5DC]"
+         style="padding:24px; background:white; border-radius:18px; max-width:580px; width:100%; margin:auto; max-height:85vh; overflow-y:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #E8E5DC; padding-bottom:12px;">
+
+            <div>
+
+                <span id="guidance-task-phase"
+                      style="padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; text-transform:uppercase; background:#F4F2EC; color:#54524B; border:1px solid #E8E5DC;">
+
+                    Phase
+
+                </span>
+
+                <h3 id="guidance-task-title"
+                    style="font-size:18px; font-weight:800; color:#1C1B18; margin-top:6px; line-height:1.3;">
+
+                    Task Title
+
+                </h3>
+
+            </div>
+
+
+            <button id="close-modal-task-guidance"
+                    style="background:none; border:none; cursor:pointer; font-size:20px;">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <div style="margin-top:12px;">
+
+            <h4 style="font-size:11px; font-weight:700; text-transform:uppercase; color:#8C887D; margin-bottom:4px;">
+
+                Task Instructions
+
+            </h4>
+
+            <p id="guidance-task-instructions"
+               style="font-size:13px; color:#1C1B18; line-height:1.5; background:#FAF9F5; padding:12px; border-radius:10px; border:1px solid #E8E5DC;">
+            </p>
+
+        </div>
+
+
+        <!-- AI GUIDANCE -->
+
+        <div style="margin-top:16px;">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+
+                <h4 style="font-size:12px; font-weight:800; text-transform:uppercase; color:#1C1B18; display:flex; align-items:center; gap:6px;">
+
+                    <i data-lucide="sparkles"
+                       class="w-4 h-4"
+                       style="color:#D96B43;">
+                    </i>
+
+                    <span>
+                        Step-by-Step AI Guidance
+                    </span>
+
+                </h4>
+
+
+                <button id="btn-get-ai-guidance"
+                        class="btn-human-secondary"
+                        style="padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:4px; font-weight:700; cursor:pointer;">
+
+                    <i data-lucide="zap"
+                       class="w-3.5 h-3.5"
+                       style="color:#D96B43;">
+                    </i>
+
+                    <span>
+                        Get AI Guidance
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <div id="guidance-steps-container"
+                 style="display:flex; flex-direction:column; gap:8px;">
+
+                <div style="padding:16px; text-align:center; color:#78756C; font-size:12px; font-style:italic; background:#FAF9F5; border-radius:10px; border:1px dashed #E8E5DC;">
+
+                    Click <strong>"Get AI Guidance"</strong> above to generate a tailored 5-step action plan for this task.
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- MODAL FOOTER -->
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; border-top:1px solid #E8E5DC; padding-top:14px;">
+
+            <button id="btn-modal-toggle-status"
+                    class="btn-human-primary"
+                    style="padding:8px 16px; font-size:12px; background:#3B7A57; color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
+
+                <i data-lucide="check-circle-2"
+                   class="w-4 h-4">
+                </i>
+
+                <span id="btn-modal-toggle-status-text">
+                    Mark Completed
+                </span>
+
+            </button>
+
+
+            <button id="btn-close-guidance-modal"
+                    class="btn-human-secondary"
+                    style="padding:8px 16px; font-size:12px;">
+
+                Close
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="employee-dashboard.js"></script>
+
+</body>
+
+</html>

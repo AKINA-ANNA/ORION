@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Company Setup — Orion</title>
+
+    <link
+        rel="stylesheet"
+        href="company-question.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================
+     NAVBAR
+========================================= -->
+
+<header class="navbar">
+
+    <a
+        href="landing.html"
+        class="brand"
+    >
+
+        <div class="brand-mark">
+
+            <span></span>
+            <span></span>
+
+        </div>
+
+        <span>orion</span>
+
+    </a>
+
+
+    <div class="company-user">
+
+        <span id="companyNameDisplay">
+            Company Setup
+        </span>
+
+    </div>
+
+</header>
+
+
+
+<!-- =========================================
+     MAIN
+========================================= -->
+
+<main class="dashboard">
+
+
+<!-- =========================================
+     WELCOME SCREEN
+========================================= -->
+
+<section
+    id="welcomeScreen"
+    class="screen active"
+>
+
+    <div class="welcome-card">
+
+        <div class="ai-icon">
+            ✦
+        </div>
+
+
+        <p class="eyebrow">
+            ORION COMPANY DISCOVERY
+        </p>
+
+
+        <h1>
+            Let's get to know your company.
+        </h1>
+
+
+        <p class="welcome-description">
+
+            Instead of asking you dozens of questions,
+            Orion will first research publicly available
+            information about your company.
+
+            You can review what we find and correct
+            anything that is inaccurate.
+
+        </p>
+
+
+        <div class="setup-points">
+
+
+            <div class="setup-point">
+
+                <span>01</span>
+
+                <p>
+                    Orion researches your company using
+                    publicly available information.
+                </p>
+
+            </div>
+
+
+            <div class="setup-point">
+
+                <span>02</span>
+
+                <p>
+                    You review and confirm what Orion found.
+                </p>
+
+            </div>
+
+
+            <div class="setup-point">
+
+                <span>03</span>
+
+                <p>
+                    Orion asks only about information
+                    it could not discover.
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+        <button
+            id="startButton"
+            class="primary-button"
+            type="button"
+        >
+
+            Research my company
+
+            <span>→</span>
+
+        </button>
+
+
+        <p
+            id="welcomeError"
+            class="form-error"
+        ></p>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     COMPANY NAME SCREEN
+========================================= -->
+
+<section
+    id="companyNameScreen"
+    class="screen"
+>
+
+    <div class="name-card">
+
+        <div class="ai-icon">
+            ✦
+        </div>
+
+
+        <p class="eyebrow">
+            FIRST, LET'S START WITH THE BASICS
+        </p>
+
+
+        <h1>
+            What's your company called?
+        </h1>
+
+
+        <p class="welcome-description">
+
+            Orion needs your company name to research
+            publicly available information about your
+            organization.
+
+        </p>
+
+
+        <form id="companyNameForm">
+
+            <div class="form-group">
+
+                <label for="companyNameInput">
+                    Company name
+                </label>
+
+                <input
+                    id="companyNameInput"
+                    type="text"
+                    placeholder="e.g. Microsoft"
+                    autocomplete="organization"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                id="saveCompanyNameButton"
+                class="primary-button"
+                type="submit"
+            >
+
+                Continue
+
+                <span>→</span>
+
+            </button>
+
+        </form>
+
+
+        <p
+            id="companyNameError"
+            class="form-error"
+        ></p>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     RESEARCH LOADING SCREEN
+========================================= -->
+
+<section
+    id="researchScreen"
+    class="screen"
+>
+
+    <div class="loading-card">
+
+
+        <div class="loading-icon">
+            ✦
+        </div>
+
+
+        <p class="eyebrow">
+            ORION AI
+        </p>
+
+
+        <h1>
+            Researching your company...
+        </h1>
+
+
+        <p id="researchStatus">
+
+            Orion is searching publicly available
+            information about your company.
+
+        </p>
+
+
+        <div class="loading-bar">
+
+            <div class="loading-bar-fill"></div>
+
+        </div>
+
+
+        <p class="loading-note">
+
+            This may take a few seconds.
+
+        </p>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     RESEARCH REVIEW SCREEN
+========================================= -->
+
+<section
+    id="researchReviewScreen"
+    class="screen"
+>
+
+    <div class="research-container">
+
+
+        <div class="research-header">
+
+            <p class="eyebrow">
+                COMPANY RESEARCH
+            </p>
+
+
+            <h1>
+                Here's what Orion found.
+            </h1>
+
+
+            <p>
+
+                We researched publicly available
+                information about your company.
+
+                Please review the information below
+                and tell us if anything needs to be corrected.
+
+            </p>
+
+        </div>
+
+
+
+        <div
+            id="researchProfile"
+            class="research-profile"
+        ></div>
+
+
+
+        <div
+            id="sourcesSection"
+            class="sources-section"
+        >
+
+            <h3>
+                Sources used
+            </h3>
+
+
+            <div
+                id="sourcesList"
+                class="sources-list"
+            ></div>
+
+        </div>
+
+
+
+        <div class="review-actions">
+
+
+            <button
+                id="confirmResearchButton"
+                class="primary-button"
+                type="button"
+            >
+
+                Everything looks correct
+
+                <span>✓</span>
+
+            </button>
+
+
+            <button
+                id="correctResearchButton"
+                class="secondary-button"
+                type="button"
+            >
+
+                I need to correct something
+
+            </button>
+
+
+        </div>
+
+
+        <p
+            id="researchError"
+            class="form-error"
+        ></p>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     CORRECTION SCREEN
+========================================= -->
+
+<section
+    id="correctionScreen"
+    class="screen"
+>
+
+    <div class="correction-container">
+
+
+        <div class="research-header">
+
+            <p class="eyebrow">
+                REVIEW COMPANY INFORMATION
+            </p>
+
+
+            <h1>
+                Make any corrections.
+            </h1>
+
+
+            <p>
+
+                Update anything Orion got wrong.
+                You don't need to change information
+                that is already correct.
+
+            </p>
+
+        </div>
+
+
+
+        <form
+            id="correctionForm"
+            class="correction-form"
+        >
+
+
+            <div class="form-group">
+
+                <label for="correctionCompanyNameInput">
+                    Company name
+                </label>
+
+                <input
+                    id="correctionCompanyNameInput"
+                    type="text"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="industryInput">
+                    Industry
+                </label>
+
+                <input
+                    id="industryInput"
+                    type="text"
+                    placeholder="e.g. Technology"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="descriptionInput">
+                    Company description
+                </label>
+
+                <textarea
+                    id="descriptionInput"
+                    placeholder="Describe what your company does..."
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="productsInput">
+                    Products and services
+                </label>
+
+                <textarea
+                    id="productsInput"
+                    placeholder="Enter products or services, one per line..."
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="departmentsInput">
+                    Departments
+                </label>
+
+                <textarea
+                    id="departmentsInput"
+                    placeholder="Enter departments, one per line..."
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="technologiesInput">
+                    Technologies
+                </label>
+
+                <textarea
+                    id="technologiesInput"
+                    placeholder="Enter technologies, one per line..."
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="onboardingInput">
+                    What should new employees learn during onboarding?
+                </label>
+
+                <textarea
+                    id="onboardingInput"
+                    placeholder="Tell Orion what new employees should understand..."
+                ></textarea>
+
+            </div>
+
+
+
+            <button
+                type="submit"
+                class="primary-button"
+            >
+
+                Save corrections
+
+                <span>→</span>
+
+            </button>
+
+
+        </form>
+
+
+        <p
+            id="correctionError"
+            class="form-error"
+        ></p>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     MISSING INFORMATION / QUESTIONS
+========================================= -->
+
+<section
+    id="questionnaireScreen"
+    class="screen"
+>
+
+    <div class="questionnaire-container">
+
+
+        <div class="progress-header">
+
+            <span>
+                FINAL COMPANY DISCOVERY
+            </span>
+
+
+            <span id="progressText">
+                Getting started
+            </span>
+
+        </div>
+
+
+        <div class="progress-track">
+
+            <div
+                id="progressBar"
+                class="progress-fill"
+            ></div>
+
+        </div>
+
+
+
+        <div class="ai-label">
+
+            <div class="ai-dot">
+                ✦
+            </div>
+
+            <span>
+                Orion AI
+            </span>
+
+        </div>
+
+
+
+        <div class="question-card">
+
+
+            <p
+                id="questionNumber"
+                class="question-number"
+            >
+                Question
+            </p>
+
+
+            <h1
+                id="questionText"
+            >
+                Preparing your questions...
+            </h1>
+
+
+            <p
+                id="questionDescription"
+                class="question-description"
+            ></p>
+
+
+            <div
+                id="answerArea"
+                class="answer-area"
+            ></div>
+
+
+            <p
+                id="questionError"
+                class="form-error"
+            ></p>
+
+
+            <button
+                id="continueButton"
+                class="primary-button"
+                type="button"
+            >
+
+                Continue
+
+                <span>→</span>
+
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     COMPLETION SCREEN
+========================================= -->
+
+<section
+    id="completionScreen"
+    class="screen"
+>
+
+    <div class="completion-card">
+
+
+        <div class="success-icon">
+            ✓
+        </div>
+
+
+        <p class="eyebrow">
+            COMPANY PROFILE READY
+        </p>
+
+
+        <h1>
+            Your Orion profile is ready.
+        </h1>
+
+
+        <p>
+
+            Orion has combined public research,
+            your corrections, and your answers
+            into your personalized company profile.
+
+        </p>
+
+
+        <button
+            id="dashboardButton"
+            class="primary-button"
+            type="button"
+        >
+
+            Go to company dashboard
+
+            <span>→</span>
+
+        </button>
+
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+
+<!-- =========================================
+     SUPABASE
+========================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="../supabase-config.js"></script>
+
+
+<!-- =========================================
+     COMPANY QUESTIONNAIRE
+========================================= -->
+
+<script src="company-question.js"></script>
+
+
+</body>
+
+</html>

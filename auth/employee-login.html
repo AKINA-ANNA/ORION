@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Log in — Orion</title>
+
+    <link
+        rel="stylesheet"
+        href="auth.css"
+    >
+
+</head>
+
+
+<body class="auth-page">
+
+<a href="../landing.html" class="back-home">
+    ← Back to Orion
+</a>
+<div class="auth-container">
+
+
+    <a
+        href="../landing.html"
+        class="auth-logo"
+    >
+
+        <div class="brand-mark">
+
+            <span></span>
+            <span></span>
+
+        </div>
+
+        orion
+
+    </a>
+
+
+
+    <div class="auth-card">
+
+
+        <div class="auth-header">
+
+            <p class="eyebrow">
+                WELCOME BACK
+            </p>
+
+
+            <h1>
+                Log in to Orion
+            </h1>
+
+
+            <p>
+                Continue where you left off.
+            </p>
+
+        </div>
+
+
+
+        <form id="loginForm">
+
+
+            <label>
+                Email
+            </label>
+
+
+            <input
+                type="email"
+                id="loginEmail"
+                placeholder="alex@company.com"
+                required
+            >
+
+
+
+            <label>
+                Password
+            </label>
+
+
+            <input
+                type="password"
+                id="loginPassword"
+                placeholder="Your password"
+                required
+            >
+
+
+
+            <div class="forgot-password">
+
+                <a href="#">
+                    Forgot password?
+                </a>
+
+            </div>
+
+
+
+            <button
+                type="submit"
+                class="button button-dark full-width"
+
+            >
+                Log in
+            </button>
+
+
+            <p
+                class="form-error"
+                id="loginError"
+            ></p>
+
+
+        </form>
+
+
+
+
+    </div>
+
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="../supabase-config.js"></script>
+
+<script src="employee-login.js"></script>
+
+
+</body>
+
+</html>
