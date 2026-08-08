@@ -949,6 +949,7 @@
                         Track individual employee onboarding progress, milestones completed, and active roadmaps.
                     </p>
                 </div>
+                <button id="addDepartmentOnboardingTaskButton" class="secondary-button" type="button">+ Department Task</button>
             </div>
 
             <!-- OVERALL COMPANY STATS CARDS -->
@@ -1633,19 +1634,9 @@
             >
 
 
-            <!-- EMPLOYEE PASSWORD -->
-
-            <label for="employeePassword">
-                Password
-            </label>
-
-            <input
-                id="employeePassword"
-                type="password"
-                placeholder="Set employee password"
-                minlength="6"
-                required
-            >
+            <p class="form-message">
+                ORION will securely generate a temporary password and email it to the employee.
+            </p>
 
 
             <!-- DEPARTMENT -->
@@ -1802,6 +1793,28 @@
     <div class="modal-card project-modal-card">
         <button class="modal-close" data-close-company-project-details type="button">×</button>
         <div id="companyProjectDetails"></div>
+    </div>
+</div>
+
+<div id="departmentOnboardingTaskModal" class="modal">
+    <div class="modal-card">
+        <button class="modal-close" data-close-department-task-modal type="button">×</button>
+        <p class="eyebrow">ONBOARDING</p>
+        <h2>Create department onboarding task</h2>
+        <form id="departmentOnboardingTaskForm">
+            <label for="departmentOnboardingDepartment">Assignment type</label>
+            <p class="form-message">Department — this task is added to every current and future employee in the selected department.</p>
+            <label for="departmentOnboardingDepartment">Department</label>
+            <select id="departmentOnboardingDepartment" required></select>
+            <label for="departmentOnboardingTitle">Task title</label>
+            <input id="departmentOnboardingTitle" type="text" required>
+            <label for="departmentOnboardingInstructions">Instructions</label>
+            <textarea id="departmentOnboardingInstructions"></textarea>
+            <label for="departmentOnboardingPhase">Phase</label>
+            <input id="departmentOnboardingPhase" type="text" value="Department onboarding">
+            <button type="submit" class="primary-button full-width">Save task</button>
+            <p id="departmentOnboardingTaskMessage" class="form-message"></p>
+        </form>
     </div>
 </div>
 

@@ -438,3 +438,8 @@ entrypoint = "./functions/mentor-chat/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/onboarding-assessment/index.ts"
+
+[functions.create-employee]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-employee/index.ts"

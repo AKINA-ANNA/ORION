@@ -1275,6 +1275,7 @@ async function loadOnboardingRoadmap() {
             .from('onboarding_tasks')
             .select('*')
             .eq('onboarding_plan_id', plan.id)
+            .eq('is_required', true)
             .order('order_index', { ascending: true });
 
         if (tasksErr) {
@@ -1436,10 +1437,10 @@ function renderCompletedRoadmapState() {
         <div class="empty-state" style="padding:48px 24px; text-align:center;">
             <div class="empty-icon" style="color:#3B7A57; font-size:30px;">✓</div>
             <h4>Your onboarding is complete</h4>
-            <p>Waiting for your company to assign the next onboarding roadmap.</p>
+            <p>Your project work is now your primary workspace.</p>
         </div>`;
     const title = document.getElementById('roadmapTitle');
-    if (title) title.textContent = 'Waiting for your next roadmap';
+    if (title) title.textContent = 'Onboarding complete';
     const progress = document.getElementById('roadmapProgress');
     if (progress) progress.textContent = 'Onboarding complete';
     const progressBarWrap = document.getElementById('roadmapProgressBarWrap');
@@ -1464,7 +1465,7 @@ function renderHomeProgress(tasks) {
     const progressDesc = document.getElementById('onboardingProgressDescription');
     if (progressDesc) {
         if (onboardingComplete) {
-            progressDesc.textContent = 'All onboarding tasks are done. Waiting for your next assigned roadmap.';
+            progressDesc.textContent = 'All onboarding tasks are done. Your project work is now your primary workspace.';
         } else {
             const nextTask = tasks.find(t => t.status !== 'completed' && t.status !== 'complete');
             progressDesc.textContent = nextTask ? `Next up: ${nextTask.title}` : 'Keep making progress on your assigned tasks.';
@@ -2894,7 +2895,7 @@ async function loadEmployeeProjects() {
     const profile = await getCurrentEmployeeProjectProfile();
     if (!profile?.id) { renderEmployeeProjects([], 'Projects could not be loaded.'); return; }
     const { data, error } = await supabaseClient.from('project_members')
-        .select('project_id, company_projects(id, project_name, problem_statement, description, deadline, project_members(id))')
+        .select('project_id, company_projects(id, project_name, problem_statement, description, deadline, project_members(id), project_tasks(id, title, description, deadline, project_task_assignments(id, employee_id, status, completed_at)))')
         .eq('employee_id', profile.id);
     if (error) { console.error('EMPLOYEE PROJECTS LOAD ERROR:', error); renderEmployeeProjects([], 'Projects could not be loaded.'); return; }
     employeeProjects = (data || []).map(item => item.company_projects).filter(Boolean);
@@ -2907,7 +2908,7 @@ function renderEmployeeProjects(projects, errorMessage = '') {
     grid.replaceChildren();
     if (!projects.length) {
         const empty = document.createElement('div'); empty.className = 'empty-state';
-        const title = document.createElement('h4'); title.textContent = errorMessage || 'You have not been assigned to any projects yet.';
+        const title = document.createElement('h4'); title.textContent = errorMessage || (isOnboardingComplete(employeeTasks) ? 'You’re fully onboarded! No projects have been assigned to you yet.' : 'You have not been assigned to any projects yet.');
         empty.appendChild(title); grid.appendChild(empty); return;
     }
     projects.forEach(project => {
@@ -2916,9 +2917,12 @@ function renderEmployeeProjects(projects, errorMessage = '') {
         const statement = document.createElement('p'); statement.textContent = employeeProjectPreview(project.problem_statement);
         const deadline = document.createElement('span'); deadline.className = 'project-card-meta'; deadline.textContent = `Deadline: ${employeeProjectDateLabel(project.deadline)}`;
         const team = document.createElement('span'); team.className = 'project-card-meta'; team.textContent = `Team size: ${project.project_members?.length || 0}`;
+        const assignments = (project.project_tasks || []).flatMap(task => task.project_task_assignments || []);
+        const completed = assignments.filter(item => item.status === 'completed').length;
+        const work = document.createElement('span'); work.className = 'project-card-meta'; work.textContent = `Pending tasks: ${assignments.length - completed} · Progress: ${assignments.length ? Math.round(completed / assignments.length * 100) : 0}%`;
         const actions = document.createElement('div'); actions.className = 'project-card-actions';
         const view = document.createElement('button'); view.type = 'button'; view.textContent = 'View'; view.addEventListener('click', () => viewEmployeeProject(project.id)); actions.appendChild(view);
-        card.append(title, statement, deadline, team, actions); grid.appendChild(card);
+        card.append(title, statement, deadline, team, work, actions); grid.appendChild(card);
     });
 }
 
@@ -2939,7 +2943,7 @@ async function viewEmployeeProject(projectId) {
     if (!container) return;
     container.textContent = 'Loading project...'; showEmployeeProjectModal();
     const { data: project, error } = await supabaseClient.from('company_projects')
-        .select('project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, email, role, experience_level, department_id, departments(name)))')
+        .select('id, project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, email, role, experience_level, department_id, departments(name))), project_tasks(id, title, description, deadline, project_task_assignments(id, employee_id, status, completed_at))')
         .eq('id', projectId).maybeSingle();
     if (error || !project) { console.error('PROJECT DETAILS LOAD ERROR:', error); container.textContent = 'Project details could not be loaded.'; return; }
     container.replaceChildren();
@@ -2960,6 +2964,33 @@ async function viewEmployeeProject(projectId) {
         item.append(avatar, details); members.appendChild(item);
     });
     container.appendChild(members);
+    const taskHeading = document.createElement('h4'); taskHeading.textContent = 'Project tasks'; container.appendChild(taskHeading);
+    const tasks = project.project_tasks || [];
+    if (!tasks.length) {
+        const empty = document.createElement('p'); empty.textContent = 'No project tasks are assigned to you yet.'; container.appendChild(empty);
+    }
+    tasks.forEach(task => {
+        const assignment = (task.project_task_assignments || [])[0];
+        if (!assignment) return;
+        const item = document.createElement('div'); item.className = 'project-details-member';
+        const details = document.createElement('div');
+        const title = document.createElement('strong'); title.textContent = task.title;
+        const description = document.createElement('small'); description.textContent = task.description || 'No instructions provided.';
+        const status = document.createElement('small'); status.textContent = 'Status: ' + assignment.status;
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = assignment.status === 'completed' ? 'Mark pending' : 'Mark completed';
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            const nextStatus = assignment.status === 'completed' ? 'pending' : 'completed';
+            const { error } = await supabaseClient.from('project_task_assignments').update({
+                status: nextStatus, completed_at: nextStatus === 'completed' ? new Date().toISOString() : null
+            }).eq('id', assignment.id);
+            if (error) { alert(error.message); button.disabled = false; return; }
+            await viewEmployeeProject(project.id);
+            await loadEmployeeProjects();
+        });
+        details.append(title, document.createElement('br'), description, document.createElement('br'), status, document.createElement('br'), button);
+        item.append(details); container.appendChild(item);
+    });
 }
 
 document.getElementById('closeEmployeeProjectDetails')?.addEventListener('click', closeEmployeeProjectModal);

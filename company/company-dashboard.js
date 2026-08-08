@@ -99,7 +99,7 @@ async function initializeDashboard() {
         ) {
 
             window.location.href =
-                "company-login.html";
+                "../auth/company-login.html";
 
             return;
 
@@ -1929,12 +1929,6 @@ if (employeeForm) {
                 );
 
 
-            const passwordInput =
-                document.getElementById(
-                    "employeePassword"
-                );
-
-
             const departmentInput =
                 document.getElementById(
                     "employeeDepartment"
@@ -1963,10 +1957,6 @@ if (employeeForm) {
                     .toLowerCase();
 
 
-            const password =
-                passwordInput.value;
-
-
             const department_id =
                 departmentInput.value;
 
@@ -1980,7 +1970,6 @@ if (employeeForm) {
             if (
                 !full_name ||
                 !email ||
-                !password ||
                 !department_id
             ) {
 
@@ -1988,22 +1977,6 @@ if (employeeForm) {
 
                     message.textContent =
                         "Please fill in all required fields.";
-
-                }
-
-                return;
-
-            }
-
-
-            if (
-                password.length < 6
-            ) {
-
-                if (message) {
-
-                    message.textContent =
-                        "Password must be at least 6 characters.";
 
                 }
 
@@ -2165,9 +2138,6 @@ if (employeeForm) {
                                     email:
                                         email,
 
-                                    password:
-                                        password,
-
                                     department_id:
                                         department_id,
 
@@ -2223,7 +2193,9 @@ if (employeeForm) {
                 if (message) {
 
                     message.textContent =
-                        "Employee account created successfully.";
+                        result.message || (result.credentials_sent
+                            ? `Login credentials sent successfully to ${email}`
+                            : "Employee account created, but the login email could not be sent. Use Resend Login Credentials from Employees.");
 
                 }
 
@@ -2643,6 +2615,17 @@ function renderEmployees(
 
                                     </button>
 
+                                    <button
+                                        type="button"
+                                        class="secondary-button"
+                                        data-resend-credentials="${escapeHTML(
+                                            employee.id
+                                        )}"
+                                        style="font-size:0.8rem;padding:6px 14px;"
+                                    >
+                                        Resend Login Credentials
+                                    </button>
+
 
                                     <button
                                         type="button"
@@ -2755,6 +2738,33 @@ function renderEmployees(
 
             }
         );
+
+    container.querySelectorAll("[data-resend-credentials]").forEach(function(button) {
+        button.addEventListener("click", async function() {
+            const employee = employees.find(item => String(item.id) === String(this.dataset.resendCredentials));
+            if (!employee || !companyProfile) return;
+            if (!window.confirm("Send a new temporary password to " + employee.email + "?")) return;
+            this.disabled = true;
+            try {
+                const { data: sessionData } = await supabaseClient.auth.getSession();
+                if (!sessionData.session) throw new Error("Your company session has expired. Please log in again.");
+                const response = await fetch(SUPABASE_URL + "/functions/v1/create-employee", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sessionData.session.access_token },
+                    body: JSON.stringify({ full_name: employee.full_name, email: employee.email, department_id: employee.department_id, company_id: companyProfile.id })
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result.credentials_sent) throw new Error(result.message || result.error || "The credentials email could not be sent.");
+                alert(result.message);
+                await loadEmployees();
+                updateDashboard();
+            } catch (error) {
+                alert(error.message || "Could not resend login credentials.");
+            } finally {
+                this.disabled = false;
+            }
+        });
+    });
 
 }
 
@@ -3449,7 +3459,7 @@ async function logout() {
 
 
     window.location.href =
-        "company-login.html";
+        "../auth/company-login.html";
 
 }
 
@@ -5197,7 +5207,7 @@ async function viewCompanyProject(projectId) {
     if (!modal || !container) return;
     container.textContent = 'Loading project...'; modal.classList.add('active');
     const { data: project, error } = await supabaseClient.from('company_projects')
-        .select('project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, role, experience_level, department_id, departments(name)))')
+        .select('id, project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, role, experience_level, department_id, departments(name))), project_tasks(id, title, description, assignment_type, assigned_employee_id, status, deadline, project_task_assignments(id, employee_id, status, completed_at))')
         .eq('id', projectId).maybeSingle();
     if (error || !project) { container.textContent = 'Project details could not be loaded.'; return; }
     container.replaceChildren();
@@ -5212,11 +5222,111 @@ async function viewCompanyProject(projectId) {
         text.appendChild(document.createElement('br')); text.appendChild(info); item.append(avatar, text); memberList.appendChild(item);
     });
     container.appendChild(memberList);
+    renderCompanyProjectAnalysis(container, project);
+}
+
+function renderCompanyProjectAnalysis(container, project) {
+    const tasks = project.project_tasks || [];
+    const assignments = tasks.flatMap(task => task.project_task_assignments || []);
+    const completed = assignments.filter(item => item.status === 'completed').length;
+    const pending = assignments.filter(item => item.status !== 'completed').length;
+    const completion = assignments.length ? Math.round((completed / assignments.length) * 100) : 0;
+    const overdue = assignments.filter(item => {
+        const task = tasks.find(value => value.id === item.project_task_id);
+        return task?.deadline && item.status !== 'completed' && new Date(task.deadline) < new Date();
+    }).length;
+    const section = document.createElement('section');
+    section.className = 'project-analysis';
+    section.innerHTML = `<h3>Project Analysis</h3>
+      <div class="project-card-meta">Employees: ${project.project_members?.length || 0} · Tasks: ${tasks.length} · Completed: ${completed} · Pending: ${pending} · Completion: ${completion}% · Overdue: ${overdue}</div>
+      <h4>Task completion breakdown</h4><p>${completed} completed assignments and ${pending} pending assignments.</p>
+      <h4>Employee progress</h4><div id="projectEmployeeProgress"></div>
+      <h4>Create project task</h4>
+      <form id="companyProjectTaskForm">
+        <input id="companyProjectTaskTitle" placeholder="Task title" required>
+        <textarea id="companyProjectTaskDescription" placeholder="Instructions"></textarea>
+        <select id="companyProjectTaskAssignee"><option value="">Entire project team</option></select>
+        <input id="companyProjectTaskDeadline" type="datetime-local">
+        <button class="primary-button" type="submit">Create task</button>
+        <p id="companyProjectTaskMessage" class="form-message"></p>
+      </form>`;
+    const progress = section.querySelector('#projectEmployeeProgress');
+    (project.project_members || []).forEach(member => {
+        const employee = member.employee_profiles;
+        const employeeAssignments = assignments.filter(item => item.employee_id === member.employee_id);
+        const employeeCompleted = employeeAssignments.filter(item => item.status === 'completed').length;
+        const percent = employeeAssignments.length ? Math.round(employeeCompleted / employeeAssignments.length * 100) : 0;
+        const item = document.createElement('p');
+        item.textContent = `${employee?.full_name || 'Employee'} — ${percent}%`;
+        progress.appendChild(item);
+        const option = document.createElement('option');
+        option.value = member.employee_id; option.textContent = employee?.full_name || 'Employee';
+        section.querySelector('#companyProjectTaskAssignee').appendChild(option);
+    });
+    section.querySelector('#companyProjectTaskForm').addEventListener('submit', async event => {
+        event.preventDefault();
+        const message = section.querySelector('#companyProjectTaskMessage');
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const assignee = section.querySelector('#companyProjectTaskAssignee').value;
+        const payload = {
+            project_id: project.id,
+            title: section.querySelector('#companyProjectTaskTitle').value.trim(),
+            description: section.querySelector('#companyProjectTaskDescription').value.trim(),
+            assignment_type: assignee ? 'employee' : 'project',
+            assigned_employee_id: assignee || null,
+            deadline: section.querySelector('#companyProjectTaskDeadline').value || null,
+            created_by: user?.id
+        };
+        if (!payload.title || !payload.created_by) return;
+        const { error } = await supabaseClient.from('project_tasks').insert(payload);
+        if (error) { message.textContent = error.message; return; }
+        await viewCompanyProject(project.id);
+    });
+    container.appendChild(section);
 }
 
 document.getElementById('addProjectButton')?.addEventListener('click', () => openProjectModal());
 document.getElementById('projectForm')?.addEventListener('submit', saveCompanyProject);
 document.querySelector('[data-close-project-modal]')?.addEventListener('click', closeProjectModal);
 document.querySelector('[data-close-company-project-details]')?.addEventListener('click', () => document.getElementById('companyProjectDetailsModal')?.classList.remove('active'));
+
+/* Department-wide onboarding tasks extend, rather than replace, individual roadmaps. */
+function openDepartmentOnboardingTaskModal() {
+    const modal = document.getElementById('departmentOnboardingTaskModal');
+    const select = document.getElementById('departmentOnboardingDepartment');
+    if (!modal || !select) return;
+    select.replaceChildren();
+    departments.forEach(department => {
+        const option = document.createElement('option');
+        option.value = department.id;
+        option.textContent = department.name;
+        select.appendChild(option);
+    });
+    document.getElementById('departmentOnboardingTaskMessage').textContent = departments.length ? '' : 'Create a department before adding a department task.';
+    modal.classList.add('active');
+}
+
+document.getElementById('addDepartmentOnboardingTaskButton')?.addEventListener('click', openDepartmentOnboardingTaskModal);
+document.querySelector('[data-close-department-task-modal]')?.addEventListener('click', () => document.getElementById('departmentOnboardingTaskModal')?.classList.remove('active'));
+document.getElementById('departmentOnboardingTaskForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const message = document.getElementById('departmentOnboardingTaskMessage');
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user || !companyProfile?.id) { message.textContent = 'Your company session has expired.'; return; }
+    const payload = {
+        company_id: companyProfile.id,
+        department_id: document.getElementById('departmentOnboardingDepartment').value,
+        title: document.getElementById('departmentOnboardingTitle').value.trim(),
+        instructions: document.getElementById('departmentOnboardingInstructions').value.trim(),
+        step_phase: document.getElementById('departmentOnboardingPhase').value.trim() || 'Department onboarding',
+        created_by: user.id
+    };
+    if (!payload.department_id || !payload.title) { message.textContent = 'Choose a department and enter a title.'; return; }
+    const { error } = await supabaseClient.from('department_onboarding_tasks').insert(payload);
+    if (error) { console.error('DEPARTMENT ONBOARDING TASK ERROR:', error); message.textContent = error.message; return; }
+    message.textContent = 'Department task saved and assigned to applicable employees.';
+    event.target.reset();
+});
+
 
 
