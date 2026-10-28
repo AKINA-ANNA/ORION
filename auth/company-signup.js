@@ -132,59 +132,93 @@ signupForm.addEventListener(
         CREATE SUPABASE AUTH ACCOUNT
         =========================================
 
+        The send-verification Edge Function creates
+        the Auth user and emails the confirmation
+        link through Brevo.
+
         We temporarily store the signup information
         inside Supabase Auth user metadata.
 
         This allows us to access the company
         information after the user verifies their
         email and logs in.
-
-        The actual company_profiles row will be
-        created after login.
         */
 
-        const {
+        const submitButton =
+            signupForm.querySelector(
+                'button[type="submit"]'
+            );
 
-            data,
+        if (submitButton) {
 
-            error
+            submitButton.disabled = true;
 
-        } = await supabaseClient.auth.signUp({
+            submitButton.textContent =
+                "Sending verification email...";
 
-            email: email,
+        }
 
-            password: password,
+        const redirectTo =
+            new URL(
+                "company-login.html",
+                window.location.href
+            ).href;
 
-            options: {
+        let response;
 
-                emailRedirectTo:
-                    window.location.origin +
-                    "/auth/company-login.html",
-data: {
+        let result = {};
 
-    full_name:
-        adminName,
+        try {
 
-    account_type:
-        "company",
+            response = await fetch(
+                `${SUPABASE_URL}/functions/v1/send-verification`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization":
+                            `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        redirectTo: redirectTo,
+                        metadata: {
+                            full_name: adminName,
+                            account_type: "company",
+                            company_name: companyName,
+                            industry: industry,
+                            company_size: companySize,
+                            website: website
+                        }
+                    })
+                }
+            );
 
-    company_name:
-        companyName,
+            result = await response
+                .json()
+                .catch(() => ({}));
 
-    industry:
-        industry,
+        } catch (networkError) {
 
-    company_size:
-        companySize,
+            console.error(
+                "Signup network error:",
+                networkError
+            );
 
-    website:
-        website
+        } finally {
 
-}
+            if (submitButton) {
+
+                submitButton.disabled = false;
+
+                submitButton.textContent =
+                    "Create Company";
 
             }
 
-        });
+        }
 
 
 
@@ -194,36 +228,16 @@ data: {
         =========================================
         */
 
-        if (error) {
+        if (!response || !response.ok) {
 
             console.error(
                 "Signup error:",
-                error
+                result
             );
 
             signupError.textContent =
-                error.message;
-
-            return;
-
-        }
-
-
-
-        /*
-        =========================================
-        CHECK USER
-        =========================================
-        */
-
-        const user =
-            data.user;
-
-
-        if (!user) {
-
-            signupError.textContent =
-                "Unable to create your account.";
+                result.error ||
+                "Could not send the verification email. Please try again.";
 
             return;
 
