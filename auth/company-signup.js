@@ -70,7 +70,8 @@ signupForm.addEventListener(
             document
                 .getElementById("email")
                 .value
-                .trim();
+                .trim()
+                .toLowerCase();
 
 
         const password =
