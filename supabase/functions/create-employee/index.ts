@@ -515,6 +515,17 @@ serve(async (req) => {
 
       employeeUserId = created.user.id;
 
+      const { error: confirmError } = await admin.auth.admin.updateUserById(
+        employeeUserId,
+        {
+          email_confirm: true,
+        },
+      );
+
+      if (confirmError) {
+        console.warn("Could not confirm employee email:", confirmError);
+      }
+
       /*
        * Create employee profile.
        */
