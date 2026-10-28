@@ -2046,6 +2046,35 @@
     </div>
 </div>
 
+<!-- CHANGE PASSWORD MODAL -->
+<div id="modal-change-password" class="modal-backdrop" style="display:none; align-items:center; justify-content:center; position:fixed; inset:0; z-index:2000; padding:20px; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px);">
+    <div style="width:100%; max-width:420px; background:#FFFFFF; border-radius:16px; box-shadow:0 40px 80px rgba(31,29,23,0.25); overflow:hidden; border:1px solid #E8E5DC;">
+        <div style="padding:24px 28px 16px; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <p style="text-transform:uppercase; letter-spacing:0.12em; font-size:11px; color:#8A8578; margin-bottom:6px;">Security</p>
+                <h3 style="font-family:'Newsreader', Georgia, serif; font-size:22px; color:#1F1D17; margin:0;">Change your password</h3>
+                <p style="margin-top:6px; color:#6B6656; font-size:13px;">You can update your password now, or cancel and do it later.</p>
+            </div>
+            <button id="btn-close-change-password" type="button" style="border:none; background:transparent; font-size:28px; line-height:1; color:#8A8578; cursor:pointer;">×</button>
+        </div>
+        <form id="form-change-password" style="padding:0 28px 24px; display:flex; flex-direction:column; gap:14px;">
+            <div>
+                <label for="new-password" style="display:block; font-size:12px; font-weight:600; color:#3F3B2F; margin-bottom:6px;">New Password</label>
+                <input id="new-password" type="password" minlength="8" required style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid #E8E5DC; font-size:14px;">
+            </div>
+            <div>
+                <label for="confirm-new-password" style="display:block; font-size:12px; font-weight:600; color:#3F3B2F; margin-bottom:6px;">Confirm New Password</label>
+                <input id="confirm-new-password" type="password" minlength="8" required style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid #E8E5DC; font-size:14px;">
+            </div>
+            <p id="change-password-error" style="color:#B94A48; font-size:12px; min-height:16px;"></p>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button id="btn-cancel-change-password" type="button" class="btn-human-secondary" style="padding:9px 16px; font-size:13px;">Cancel</button>
+                <button type="submit" class="btn-human-primary" style="padding:9px 18px; font-size:13px;">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="employee-dashboard.js"></script>
 
 </body>

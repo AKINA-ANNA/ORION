@@ -909,6 +909,138 @@ profileOverlay.addEventListener(
     }
 );
 
+/* =========================================
+   CHANGE PASSWORD MODAL
+========================================= */
+
+const changePasswordModal =
+    document.getElementById("modal-change-password");
+
+const closeChangePasswordBtn =
+    document.getElementById("btn-close-change-password");
+
+const cancelChangePasswordBtn =
+    document.getElementById("btn-cancel-change-password");
+
+const changePasswordForm =
+    document.getElementById("form-change-password");
+
+const changePasswordError =
+    document.getElementById("change-password-error");
+
+function openChangePasswordModal() {
+    if (!changePasswordModal) return;
+
+    changePasswordModal.style.display = "flex";
+    changePasswordModal.classList.remove("hidden");
+    changePasswordModal.classList.add("active");
+
+    if (changePasswordError) {
+        changePasswordError.textContent = "";
+    }
+
+    if (changePasswordForm) {
+        changePasswordForm.reset();
+    }
+}
+
+function closeChangePasswordModal() {
+    if (!changePasswordModal) return;
+    changePasswordModal.classList.remove("active");
+    setTimeout(() => {
+        changePasswordModal.style.display = "none";
+        changePasswordModal.classList.add("hidden");
+    }, 150);
+}
+
+if (closeChangePasswordBtn) {
+    closeChangePasswordBtn.addEventListener("click", closeChangePasswordModal);
+}
+
+if (cancelChangePasswordBtn) {
+    cancelChangePasswordBtn.addEventListener("click", closeChangePasswordModal);
+}
+
+if (changePasswordModal) {
+    changePasswordModal.addEventListener("click", function(event) {
+        if (event.target === changePasswordModal) {
+            closeChangePasswordModal();
+        }
+    });
+}
+
+if (changePasswordForm) {
+    changePasswordForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        if (changePasswordError) {
+            changePasswordError.textContent = "";
+        }
+
+        const newPasswordInput = document.getElementById("new-password");
+        const confirmPasswordInput = document.getElementById("confirm-new-password");
+
+        const newPassword = newPasswordInput?.value || "";
+        const confirmPassword = confirmPasswordInput?.value || "";
+
+        if (newPassword.length < 8) {
+            if (changePasswordError) {
+                changePasswordError.textContent = "Password must contain at least 8 characters.";
+            }
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            if (changePasswordError) {
+                changePasswordError.textContent = "Passwords do not match.";
+            }
+            return;
+        }
+
+        const submitBtn = changePasswordForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Updating...";
+        }
+
+        try {
+            const { error } = await supabaseClient.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            if (employeeProfile?.id) {
+                const { error: updateError } = await supabaseClient
+                    .from("employee_profiles")
+                    .update({ must_change_password: false })
+                    .eq("id", employeeProfile.id);
+
+                if (updateError) {
+                    console.warn("Could not update must_change_password:", updateError);
+                } else {
+                    employeeProfile.must_change_password = false;
+                }
+            }
+
+            alert("Password updated successfully.");
+            closeChangePasswordModal();
+        } catch (error) {
+            console.error("Password update error:", error);
+            if (changePasswordError) {
+                changePasswordError.textContent = error.message || "Could not update password.";
+            }
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Update Password";
+            }
+        }
+    });
+}
+
 
 /* =========================================
    LOAD EMPLOYEE PROFILE
@@ -971,6 +1103,10 @@ async function loadEmployeeProfile() {
     currentUser = user;
     employeeProfile = profile;
     updateEmployeeUI();
+
+    if (employeeProfile?.must_change_password) {
+        openChangePasswordModal();
+    }
 
 
     /* =====================================
