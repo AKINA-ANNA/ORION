@@ -3423,6 +3423,8 @@ function updateDashboard() {
 
     renderRecentEmployees();
 
+    renderAssessmentAlerts();
+
     renderDepartments();
 
     renderDepartmentSelect();
@@ -4026,13 +4028,30 @@ async function loadOnboardingPlansMap() {
             planIds.push(plan.id);
         });
 
-        // Load tasks for these plans to calculate exact live progress
+        // Load tasks for these plans to calculate exact live progress and
+        // surface assessment alerts.
         onboardingTasksMap = {};
         if (planIds.length > 0) {
-            const { data: tasks, error: tasksErr } = await supabaseClient
+            const fullSelect = 'id, onboarding_plan_id, status, title, assessment_attempts, assessment_completed, assessment_score, assessment_alert_dismissed';
+            let tasks = null;
+            let tasksErr = null;
+            const fullResult = await supabaseClient
                 .from('onboarding_tasks')
-                .select('id, onboarding_plan_id, status')
+                .select(fullSelect)
                 .in('onboarding_plan_id', planIds);
+            tasks = fullResult.data;
+            tasksErr = fullResult.error;
+
+            if (tasksErr) {
+                // Fall back for databases that have not applied the assessment
+                // alert migration yet.
+                const basicResult = await supabaseClient
+                    .from('onboarding_tasks')
+                    .select('id, onboarding_plan_id, status')
+                    .in('onboarding_plan_id', planIds);
+                tasks = basicResult.data;
+                tasksErr = basicResult.error;
+            }
 
             if (!tasksErr && tasks) {
                 tasks.forEach(function(t) {
@@ -4048,6 +4067,119 @@ async function loadOnboardingPlansMap() {
         console.error('ONBOARDING PLANS MAP ERROR:', err);
     }
 
+}
+
+
+/*
+==================================================
+   ASSESSMENT ALERTS
+==================================================
+*/
+
+function getAssessmentAlerts() {
+    const alerts = [];
+
+    employees.forEach(function(employee) {
+        const plan = onboardingPlansMap[employee.id];
+        if (!plan) return;
+
+        (onboardingTasksMap[plan.id] || []).forEach(function(task) {
+            const attempts = Number(task.assessment_attempts || 0);
+            if (
+                attempts >= 3 &&
+                task.assessment_completed !== true &&
+                task.assessment_alert_dismissed !== true
+            ) {
+                alerts.push({
+                    employee: employee,
+                    task: task,
+                    attempts: attempts
+                });
+            }
+        });
+    });
+
+    return alerts.sort(function(a, b) {
+        return b.attempts - a.attempts;
+    });
+}
+
+
+function renderAssessmentAlerts() {
+    const panel = document.getElementById('assessmentAlertsPanel');
+    const list = document.getElementById('assessmentAlertsList');
+    const count = document.getElementById('assessmentAlertCount');
+    const dot = document.querySelector('#notificationButton .notification-dot');
+
+    if (!panel || !list) return;
+
+    const alerts = getAssessmentAlerts();
+
+    if (alerts.length === 0) {
+        panel.style.display = 'none';
+        list.innerHTML = '';
+        if (count) count.textContent = '0 alerts';
+        if (dot) dot.style.display = 'none';
+        return;
+    }
+
+    panel.style.display = '';
+    if (count) {
+        count.textContent = alerts.length + (alerts.length === 1 ? ' alert' : ' alerts');
+    }
+    if (dot) dot.style.display = '';
+
+    list.innerHTML = alerts.map(function(alert) {
+        const employee = alert.employee;
+        const name = employee.full_name || employee.name || 'Employee';
+        const department = employee.department_name || 'No department';
+        const taskTitle = alert.task.title || 'Onboarding task';
+        const score = alert.task.assessment_score != null
+            ? ' (last score ' + escapeHTML(String(alert.task.assessment_score)) + '%)'
+            : '';
+
+        return `
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px; border:1px solid #F5D2C5; border-radius:12px; background:#FDF2E9;">
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <span style="width:32px; height:32px; border-radius:50%; background:#D96B43; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0;">${escapeHTML(name.charAt(0).toUpperCase())}</span>
+                    <div>
+                        <strong style="display:block; font-size:13px; color:#1C1B18;">${escapeHTML(name)} · ${escapeHTML(department)}</strong>
+                        <p style="margin:4px 0 0; font-size:12px; color:#7C2D12; line-height:1.4;">Failed the test for <strong>${escapeHTML(taskTitle)}</strong> ${alert.attempts} times${score}.</p>
+                    </div>
+                </div>
+                <button type="button" class="dismiss-assessment-alert" data-task-id="${escapeHTML(String(alert.task.id))}" aria-label="Dismiss assessment alert" title="Dismiss alert" style="background:none; border:none; color:#9A3412; cursor:pointer; font-size:18px; line-height:1; padding:2px 4px;">×</button>
+            </div>
+        `;
+    }).join('');
+
+    list.querySelectorAll('.dismiss-assessment-alert').forEach(function(button) {
+        button.addEventListener('click', function() {
+            dismissAssessmentAlert(button.dataset.taskId);
+        });
+    });
+}
+
+
+async function dismissAssessmentAlert(taskId) {
+    const { error } = await supabaseClient
+        .from('onboarding_tasks')
+        .update({ assessment_alert_dismissed: true })
+        .eq('id', taskId);
+
+    if (error) {
+        console.error('ASSESSMENT ALERT DISMISS ERROR:', error);
+        return;
+    }
+
+    Object.keys(onboardingTasksMap).forEach(function(planId) {
+        (onboardingTasksMap[planId] || []).forEach(function(task) {
+            if (String(task.id) === String(taskId)) {
+                task.assessment_alert_dismissed = true;
+            }
+        });
+    });
+
+    renderAssessmentAlerts();
 }
 
 
@@ -4985,6 +5117,18 @@ document.addEventListener('DOMContentLoaded', function() {
             renderOnboardingTable();
         });
     });
+
+    // Notification button jumps to assessment alerts
+    const notificationButton = document.getElementById('notificationButton');
+    if (notificationButton) {
+        notificationButton.addEventListener('click', function() {
+            showSection('overview');
+            const panel = document.getElementById('assessmentAlertsPanel');
+            if (panel && panel.style.display !== 'none') {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
 
 });
 

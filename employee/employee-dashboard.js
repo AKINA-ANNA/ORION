@@ -1411,7 +1411,6 @@ async function loadOnboardingRoadmap() {
             .from('onboarding_tasks')
             .select('*')
             .eq('onboarding_plan_id', plan.id)
-            .eq('is_required', true)
             .order('order_index', { ascending: true });
 
         if (tasksErr) {
@@ -1421,7 +1420,12 @@ async function loadOnboardingRoadmap() {
             return;
         }
 
-        employeeTasks = tasks || [];
+        // Keep company-authored tasks even on databases where the optional
+        // is_required/department_task_template_id columns are not present.
+        // Only hide department tasks explicitly deactivated for this plan.
+        employeeTasks = (tasks || []).filter(t =>
+            t.is_required !== false || !t.department_task_template_id
+        );
 
         // Sync tilesState.steps directly with Supabase onboarding_tasks
         tilesState.steps = employeeTasks.map((t, idx) => ({
@@ -2129,10 +2133,29 @@ function renderStepTiles() {
           <h4 class="step-title" style="font-weight:700; font-size:14px; color:#1C1B18; line-height:1.3; margin-bottom:4px;">
             ${escapeHtml(step.step_title)}
           </h4>
+          ${step.requires_assessment ? `
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:6px 0 8px;">
+              <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; ${step.assessment_completed ? 'background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;' : 'background:#FDF2E9; color:#B45309; border:1px solid #F5D2C5;'}">
+                <i data-lucide="${step.assessment_completed ? 'check-circle-2' : 'clipboard-check'}" style="width:12px; height:12px;"></i>
+                <span>${step.assessment_completed ? 'Test passed' : (step.assessment_attempts ? `Test required · ${step.assessment_attempts} attempt${Number(step.assessment_attempts) === 1 ? '' : 's'}` : 'Test required')}</span>
+              </span>
+              ${step.assessment_score != null ? `
+                <span style="padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; background:#F4F2EC; color:#54524B; border:1px solid #E8E5DC;">
+                  Last score: ${escapeHtml(String(step.assessment_score))}%
+                </span>
+              ` : ''}
+            </div>
+          ` : ''}
           <p style="font-size:12px; color:#54524B; line-height:1.5;">
             ${escapeHtml(step.step_instructions)}
           </p>
         </div>
+
+        ${step.requires_assessment && !step.assessment_completed ? `
+          <button class="start-assessment-btn" data-id="${step.id}" style="align-self:flex-start; margin-bottom:12px; padding:6px 12px; border:1px solid #F5D2C5; border-radius:10px; background:#FDF2E9; color:#B45309; font-size:11px; font-weight:700; cursor:pointer;">
+            ${step.assessment_attempts ? 'Retake test' : 'Start test'}
+          </button>
+        ` : ''}
 
         <!-- Footer -->
         <div class="step-tile-footer" style="padding-top:10px; border-top:1px solid #E8E5DC; display:flex; align-items:center; justify-content:space-between; font-size:11px;">
@@ -2175,6 +2198,14 @@ function renderStepTiles() {
     });
   });
 
+  container.querySelectorAll('.start-assessment-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const step = tilesState.steps.find(s => s.id === btn.dataset.id) || employeeTasks.find(t => t.id === btn.dataset.id);
+      if (step) openOnboardingAssessment(step);
+    });
+  });
+
   container.querySelectorAll('.edit-tile-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2210,7 +2241,12 @@ async function toggleStepCheck(id, isChecked) {
   const step = tilesState.steps.find(s => s.id === id);
   const currentStatus = step?.status || (isChecked ? 'pending' : 'completed');
   const wasSaved = await toggleTaskStatus(id, currentStatus);
-  if (!wasSaved) return false;
+  if (!wasSaved) {
+    // The checkbox toggles natively before the async save/assessment finishes.
+    // Re-render so a cancelled or failed assessment never leaves a task ticked.
+    renderStepTiles();
+    return false;
+  }
 
   const total = tilesState.steps.length;
   const completedCount = tilesState.steps.filter(s => s.completed).length;
@@ -2940,6 +2976,12 @@ function closeOnboardingAssessment() {
     stopAssessmentFocusGuard();
     exitAssessmentFullscreen();
     closeModal(document.getElementById('modal-onboarding-assessment'));
+    renderStepTiles();
+}
+
+function retryOnboardingAssessment() {
+    const task = assessmentState.task;
+    if (task) openOnboardingAssessment(task);
 }
 
 async function assessmentRequest(payload) {
@@ -3002,8 +3044,28 @@ async function submitOnboardingAssessment() {
     try {
         const result = await assessmentRequest({ action: 'grade', task_id: assessmentState.task.id, questions: assessmentState.questions, answers: assessmentState.answers });
         const resultEl = document.getElementById('assessment-result'); resultEl.hidden = false;
-        resultEl.innerHTML = result.passed ? `<strong>Congratulations!</strong><br>You passed this assessment with ${result.score}%.` : `You scored ${result.score}%.<br>You need at least 80% to complete this task. Please review the material and try again.${result.feedback?.length ? `<br><br>${result.feedback.map(escapeHtml).join('<br>')}` : ''}`;
-        if (result.passed) { await loadOnboardingRoadmap(); setTimeout(closeOnboardingAssessment, 1800); } else document.getElementById('assessment-actions').style.display = 'none';
+        if (result.passed) {
+            resultEl.innerHTML = `<strong>Congratulations!</strong><br>You passed this assessment with ${escapeHtml(String(result.score))}%.`;
+            await loadOnboardingRoadmap();
+            setTimeout(closeOnboardingAssessment, 1800);
+        } else {
+            const nextAttempts = Number(assessmentState.task.assessment_attempts || 0) + 1;
+            assessmentState.task.assessment_attempts = nextAttempts;
+            assessmentState.task.assessment_completed = false;
+            const taskRef = employeeTasks.find(t => t.id === assessmentState.task.id);
+            if (taskRef) {
+                taskRef.assessment_attempts = nextAttempts;
+                taskRef.assessment_completed = false;
+            }
+            const stepRef = tilesState.steps.find(s => s.id === assessmentState.task.id);
+            if (stepRef) {
+                stepRef.assessment_attempts = nextAttempts;
+                stepRef.assessment_completed = false;
+            }
+            resultEl.innerHTML = `You scored ${escapeHtml(String(result.score))}%.<br>You need at least 80% to complete this task. Please review the material and try again.${result.feedback?.length ? `<br><br>${result.feedback.map(escapeHtml).join('<br>')}` : ''}<div style="margin-top:14px;"><button type="button" class="btn-human-primary" onclick="retryOnboardingAssessment()" style="background:#D96B43; border:none; border-radius:10px; color:#fff; cursor:pointer; font-size:12px; font-weight:700; padding:8px 16px;">Start a new test</button></div>`;
+            document.getElementById('assessment-actions').style.display = 'none';
+            renderStepTiles();
+        }
     } catch (error) { alert(error.message || 'Unable to grade the assessment. Please try again.'); }
     finally { assessmentState.submitting = false; submit.disabled = false; submit.textContent = 'Submit assessment'; }
 }

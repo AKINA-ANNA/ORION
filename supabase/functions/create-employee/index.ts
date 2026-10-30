@@ -126,15 +126,14 @@ async function sendCredentials(
 
       <p style="margin:0;">
         <strong>Temporary Password:</strong><br>
-        <span style="font-family:monospace;font-size:16px;">
-          ${safePassword}
-        </span>
+        <span style="font-family:monospace;font-size:16px;white-space:nowrap;-webkit-user-select:all;user-select:all;">${safePassword}</span>
       </p>
 
     </div>
 
     <p>
-      Please use these credentials to log in to ORION.
+      Please use these credentials to log in to ORION. Copy the temporary
+      password exactly as shown &mdash; it does not contain any spaces.
     </p>
 
     <p>
@@ -172,6 +171,7 @@ Temporary Password:
 ${password}
 
 Please log in using these credentials and change your temporary password after your first login.
+Copy the temporary password exactly as shown - it does not contain any spaces.
 
 — ORION
         `,
@@ -193,6 +193,39 @@ Please log in using these credentials and change your temporary password after y
   }
 
   return true;
+}
+
+/*
+ * Sign in with the credentials we are about to email. If this fails,
+ * the employee would receive a password that does not work, so we
+ * surface the problem instead of sending a misleading email.
+ */
+async function verifyCredentials(
+  supabaseUrl: string,
+  anonKey: string,
+  email: string,
+  password: string,
+) {
+  const verifier = createClient(supabaseUrl, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const { error } = await verifier.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return error;
+  }
+
+  await verifier.auth.signOut();
+
+  return null;
 }
 
 serve(async (req) => {
@@ -567,6 +600,75 @@ serve(async (req) => {
       }
 
       employeeProfileId = profile.id;
+    }
+
+    /*
+     * Verify that the password we are about to email actually signs in.
+     */
+    let credentialError = await verifyCredentials(
+      supabaseUrl,
+      anonKey,
+      email,
+      password,
+    );
+
+    if (credentialError) {
+      console.warn(
+        "Generated credentials did not verify; retrying password update:",
+        credentialError.message,
+      );
+
+      const { error: retryError } = await admin.auth.admin.updateUserById(
+        employeeUserId,
+        {
+          password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: fullName,
+          },
+        },
+      );
+
+      if (retryError) {
+        console.error(
+          "Could not repair employee credentials:",
+          retryError,
+        );
+
+        return json(
+          {
+            employee_id: employeeProfileId,
+            credentials_sent: false,
+            message:
+              "Employee account was created, but the temporary password could not be set. Please use Resend Login Credentials.",
+          },
+          500,
+        );
+      }
+
+      credentialError = await verifyCredentials(
+        supabaseUrl,
+        anonKey,
+        email,
+        password,
+      );
+
+      if (credentialError) {
+        console.error(
+          "Employee credentials are still invalid:",
+          credentialError.message,
+        );
+
+        return json(
+          {
+            employee_id: employeeProfileId,
+            credentials_sent: false,
+            message:
+              "Employee account was created, but the temporary password could not be verified. Please use Resend Login Credentials.",
+          },
+          500,
+        );
+      }
     }
 
     /*

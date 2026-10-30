@@ -42,10 +42,16 @@ if (loginForm) {
                     .toLowerCase();
 
 
+            /*
+            Trim surrounding whitespace so a password copied from the
+            credentials email does not accidentally include spaces or a
+            trailing newline. Generated passwords never contain spaces.
+            */
             const password =
                 document
                     .getElementById("loginPassword")
-                    .value;
+                    .value
+                    .trim();
 
 
             /*
