@@ -4006,8 +4006,9 @@ async function loadOnboardingPlansMap() {
 
         const { data, error } = await supabaseClient
             .from('onboarding_plans')
-            .select('id, employee_id, status, approved_at')
-            .eq('company_id', companyProfile.id);
+            .select('id, employee_id, status, approved_at, company_context, company_expectations, onboarding_goals, additional_instructions, role, experience_level, created_at, updated_at')
+            .eq('company_id', companyProfile.id)
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error('ONBOARDING PLANS LOAD ERROR:', error);
@@ -4018,10 +4019,13 @@ async function loadOnboardingPlansMap() {
         const planIds = [];
 
         (data || []).forEach(function(plan) {
-            // Keep the latest plan for each employee
+            const existingPlan = onboardingPlansMap[plan.employee_id];
+            const planIsActive = plan.status === 'approved' || plan.status === 'completed';
+            const existingPlanIsActive = existingPlan &&
+                (existingPlan.status === 'approved' || existingPlan.status === 'completed');
             if (
-                !onboardingPlansMap[plan.employee_id] ||
-                plan.status === 'approved'
+                !existingPlan ||
+                (planIsActive && !existingPlanIsActive)
             ) {
                 onboardingPlansMap[plan.employee_id] = plan;
             }
@@ -4032,13 +4036,14 @@ async function loadOnboardingPlansMap() {
         // surface assessment alerts.
         onboardingTasksMap = {};
         if (planIds.length > 0) {
-            const fullSelect = 'id, onboarding_plan_id, status, title, assessment_attempts, assessment_completed, assessment_score, assessment_alert_dismissed';
+            const fullSelect = 'id, onboarding_plan_id, status, title, instructions, step_phase, step_no, order_index, requires_assessment, assessment_attempts, assessment_completed, assessment_score, assessment_alert_dismissed, completed_at';
             let tasks = null;
             let tasksErr = null;
             const fullResult = await supabaseClient
                 .from('onboarding_tasks')
                 .select(fullSelect)
-                .in('onboarding_plan_id', planIds);
+                .in('onboarding_plan_id', planIds)
+                .order('order_index', { ascending: true });
             tasks = fullResult.data;
             tasksErr = fullResult.error;
 
@@ -4047,8 +4052,9 @@ async function loadOnboardingPlansMap() {
                 // alert migration yet.
                 const basicResult = await supabaseClient
                     .from('onboarding_tasks')
-                    .select('id, onboarding_plan_id, status')
-                    .in('onboarding_plan_id', planIds);
+                    .select('id, onboarding_plan_id, status, title, instructions, step_phase, step_no, order_index')
+                    .in('onboarding_plan_id', planIds)
+                    .order('order_index', { ascending: true });
                 tasks = basicResult.data;
                 tasksErr = basicResult.error;
             }
@@ -4413,11 +4419,33 @@ function openOnboardingSetup(employeeId) {
         if (addl) addl.value = '';
     }
 
+    // If no plan-specific goals exist yet, start from the employee's own
+    // questionnaire answers so the company can tailor the roadmap around them.
+    if (
+        onboardingGoals.length === 0 &&
+        Array.isArray(employee.onboarding_goals)
+    ) {
+        onboardingGoals = employee.onboarding_goals.filter(function(goal) {
+            return typeof goal === 'string' && goal.trim();
+        });
+    }
+
     renderExpectations();
     renderGoals();
 
     // Clear messages
     setText('generateMessage', '');
+
+    // Approved roadmaps open in the live progress editor instead of asking
+    // the company to generate a brand-new roadmap again.
+    if (
+        existingPlan &&
+        (existingPlan.status === 'approved' || existingPlan.status === 'completed') &&
+        (onboardingTasksMap[existingPlan.id] || []).length > 0
+    ) {
+        openRoadmapProgress(employeeId);
+        return;
+    }
 
     // Show step 1
     showOnboardingStep('step1');
@@ -4437,7 +4465,7 @@ function openOnboardingSetup(employeeId) {
 
 function showOnboardingStep(stepId) {
 
-    ['onboardingStep1', 'onboardingStep2', 'onboardingStep3'].forEach(function(id) {
+    ['onboardingStep1', 'onboardingStep2', 'onboardingStep3', 'onboardingStep4'].forEach(function(id) {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
@@ -4445,7 +4473,8 @@ function showOnboardingStep(stepId) {
     const map = {
         step1: 'onboardingStep1',
         step2: 'onboardingStep2',
-        step3: 'onboardingStep3'
+        step3: 'onboardingStep3',
+        step4: 'onboardingStep4'
     };
 
     const target = document.getElementById(map[stepId]);
@@ -4464,6 +4493,395 @@ function closeOnboardingModal() {
     generatedTasks = [];
     onboardingExpectations = [];
     onboardingGoals = [];
+
+}
+
+
+/*
+==================================================
+   ROADMAP PROGRESS VIEW (approved plans)
+==================================================
+*/
+
+function openRoadmapProgress(employeeId) {
+
+    const employee = employees.find(function(e) {
+        return String(e.id) === String(employeeId);
+    });
+    const plan = onboardingPlansMap[employeeId];
+
+    if (!employee || !plan) {
+        alert('The onboarding roadmap could not be loaded.');
+        return;
+    }
+
+    currentOnboardingEmployeeId = employeeId;
+    currentOnboardingEmployee = employee;
+
+    const planTasks = (onboardingTasksMap[plan.id] || []).slice().sort(function(a, b) {
+        return Number(a.order_index || 0) - Number(b.order_index || 0);
+    });
+
+    generatedTasks = planTasks.map(function(task, idx) {
+        return {
+            id: task.id,
+            title: task.title || ('Task ' + (idx + 1)),
+            instructions: task.instructions || '',
+            step_phase: task.step_phase || 'General',
+            step_no: task.step_no || (idx + 1),
+            order_index: task.order_index || (idx + 1),
+            status: task.status || 'pending',
+            completed_at: task.completed_at || null,
+            requires_assessment: !!task.requires_assessment,
+            assessment_completed: !!task.assessment_completed,
+            assessment_score: task.assessment_score,
+            assessment_attempts: task.assessment_attempts || 0
+        };
+    });
+
+    const name = employee.full_name || employee.name || 'Employee';
+    setText('roadmapProgressTitle', 'Onboarding Roadmap — ' + name);
+    setText(
+        'roadmapProgressSubtitle',
+        'Track this employee\'s live progress, update task details, and keep the roadmap aligned with their role.'
+    );
+    setText('progressMessage', '');
+
+    renderRoadmapProgress();
+
+    showOnboardingStep('step4');
+
+    const modal = document.getElementById('onboardingSetupModal');
+    if (modal) modal.classList.add('active');
+
+}
+
+function renderRoadmapProgress() {
+
+    const container = document.getElementById('roadmapProgressTaskList');
+    if (!container) return;
+
+    const totalTasks = generatedTasks.length;
+    const completedTasks = generatedTasks.filter(function(task) {
+        return task.status === 'completed' || task.status === 'complete';
+    }).length;
+    const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    setText('roadmapProgressPct', progressPct + '%');
+    setText('roadmapProgressMeta', completedTasks + ' of ' + totalTasks + ' tasks complete');
+
+    const progressBar = document.getElementById('roadmapProgressBar');
+    if (progressBar) {
+        progressBar.style.width = progressPct + '%';
+        progressBar.style.background = progressPct >= 50 ? '#3B7A57' : '#d97706';
+    }
+
+    if (totalTasks === 0) {
+        container.innerHTML = '<div class="ob-empty-tasks">No tasks in this roadmap yet.</div>';
+        return;
+    }
+
+    const statusMeta = {
+        pending: { label: 'Pending', className: 'status-pending' },
+        in_progress: { label: 'In progress', className: 'status-in-progress' },
+        completed: { label: 'Completed', className: 'status-completed' },
+        complete: { label: 'Completed', className: 'status-completed' }
+    };
+
+    container.innerHTML = generatedTasks.map(function(task, idx) {
+        const meta = statusMeta[task.status] || statusMeta.pending;
+        const statusValue = task.status === 'complete' ? 'completed' : task.status;
+
+        return `
+            <div class="ob-task-card ob-progress-task-card" data-progress-task-idx="${idx}">
+
+                <div class="ob-task-card-header">
+
+                    <div class="ob-task-step-no">${idx + 1}</div>
+
+                    <div class="ob-task-card-inputs">
+
+                        <input
+                            type="text"
+                            class="ob-task-title-input"
+                            value="${escapeHTML(task.title)}"
+                            placeholder="Task title..."
+                            data-progress-field="title"
+                            data-progress-idx="${idx}"
+                        >
+
+                        <input
+                            type="text"
+                            class="ob-task-phase-input"
+                            value="${escapeHTML(task.step_phase)}"
+                            placeholder="Phase..."
+                            data-progress-field="step_phase"
+                            data-progress-idx="${idx}"
+                        >
+
+                    </div>
+
+                    <div class="ob-task-card-controls">
+
+                        <select
+                            class="ob-progress-status-select ${meta.className}"
+                            data-progress-field="status"
+                            data-progress-idx="${idx}"
+                            title="Task status"
+                        >
+                            <option value="pending" ${statusValue === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="in_progress" ${statusValue === 'in_progress' ? 'selected' : ''}>In progress</option>
+                            <option value="completed" ${statusValue === 'completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <textarea
+                    class="ob-task-instructions-input"
+                    rows="2"
+                    placeholder="Step instructions..."
+                    data-progress-field="instructions"
+                    data-progress-idx="${idx}"
+                >${escapeHTML(task.instructions)}</textarea>
+
+                <label class="ob-assessment-toggle">
+                    <input type="checkbox" data-progress-assessment="${idx}" ${task.requires_assessment ? 'checked' : ''}>
+                    <span>Test employee before marking this task complete</span>
+                </label>
+
+                <div class="ob-progress-task-footer">
+
+                    <span class="ob-task-status-badge ${meta.className}">${meta.label}</span>
+
+                    ${task.assessment_completed ? `
+                        <span class="ob-task-status-badge status-completed">Test passed${task.assessment_score != null ? ' · ' + escapeHTML(String(task.assessment_score)) + '%' : ''}</span>
+                    ` : Number(task.assessment_attempts || 0) > 0 ? `
+                        <span class="ob-task-status-badge status-in-progress">${Number(task.assessment_attempts)} failed test${Number(task.assessment_attempts) === 1 ? '' : 's'}</span>
+                    ` : ''}
+
+                    <div class="ob-progress-task-controls">
+                        <button type="button" class="ob-task-ctrl-btn" data-progress-move-up="${idx}" title="Move up" ${idx === 0 ? 'disabled' : ''}>↑</button>
+                        <button type="button" class="ob-task-ctrl-btn" data-progress-move-down="${idx}" title="Move down" ${idx === generatedTasks.length - 1 ? 'disabled' : ''}>↓</button>
+                        <button type="button" class="ob-task-ctrl-btn ob-task-delete-btn" data-progress-delete="${idx}" title="Delete task">×</button>
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+    }).join('');
+
+    container.querySelectorAll('[data-progress-field]').forEach(function(input) {
+        const eventName = input.tagName === 'SELECT' ? 'change' : 'input';
+        input.addEventListener(eventName, function() {
+            const idx = parseInt(this.dataset.progressIdx);
+            if (generatedTasks[idx] === undefined) return;
+            generatedTasks[idx][this.dataset.progressField] = this.value;
+            if (this.dataset.progressField === 'status') {
+                renderRoadmapProgress();
+            }
+        });
+    });
+
+    container.querySelectorAll('[data-progress-assessment]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.progressAssessment);
+            if (generatedTasks[idx] !== undefined) {
+                generatedTasks[idx].requires_assessment = this.checked;
+            }
+        });
+    });
+
+    container.querySelectorAll('[data-progress-move-up]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.progressMoveUp);
+            if (idx > 0) {
+                const temp = generatedTasks[idx];
+                generatedTasks[idx] = generatedTasks[idx - 1];
+                generatedTasks[idx - 1] = temp;
+                renumberProgressTasks();
+                renderRoadmapProgress();
+            }
+        });
+    });
+
+    container.querySelectorAll('[data-progress-move-down]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.progressMoveDown);
+            if (idx < generatedTasks.length - 1) {
+                const temp = generatedTasks[idx];
+                generatedTasks[idx] = generatedTasks[idx + 1];
+                generatedTasks[idx + 1] = temp;
+                renumberProgressTasks();
+                renderRoadmapProgress();
+            }
+        });
+    });
+
+    container.querySelectorAll('[data-progress-delete]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.progressDelete);
+            if (confirm('Remove this task from the roadmap?')) {
+                generatedTasks.splice(idx, 1);
+                renumberProgressTasks();
+                renderRoadmapProgress();
+            }
+        });
+    });
+
+}
+
+function renumberProgressTasks() {
+    generatedTasks.forEach(function(task, idx) {
+        task.step_no = idx + 1;
+        task.order_index = idx + 1;
+    });
+}
+
+async function saveRoadmapProgress() {
+
+    if (!currentOnboardingEmployee) {
+        alert('No employee selected.');
+        return;
+    }
+
+    const plan = onboardingPlansMap[currentOnboardingEmployee.id];
+    if (!plan) {
+        alert('The onboarding plan could not be loaded.');
+        return;
+    }
+
+    const btn = document.getElementById('saveRoadmapProgressBtn');
+    const msgEl = document.getElementById('progressMessage');
+
+    // Read the latest values from the editable cards.
+    document.querySelectorAll('[data-progress-task-idx]').forEach(function(card) {
+        const idx = parseInt(card.dataset.progressTaskIdx);
+        if (generatedTasks[idx] === undefined) return;
+        card.querySelectorAll('[data-progress-field]').forEach(function(input) {
+            generatedTasks[idx][input.dataset.progressField] = input.value;
+        });
+    });
+
+    if (generatedTasks.length === 0) {
+        if (msgEl) {
+            msgEl.textContent = 'The roadmap needs at least one task.';
+            msgEl.style.color = 'var(--text-danger, #ef4444)';
+        }
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+    }
+    if (msgEl) {
+        msgEl.textContent = '';
+        msgEl.style.color = '';
+    }
+
+    try {
+
+        const originalIds = (onboardingTasksMap[plan.id] || [])
+            .map(function(task) { return task.id; })
+            .filter(Boolean);
+        const keptIds = new Set(
+            generatedTasks
+                .filter(function(task) { return task.id; })
+                .map(function(task) { return task.id; })
+        );
+        const removedIds = originalIds.filter(function(id) { return !keptIds.has(id); });
+
+        // Move surviving tasks out of the way first so the unique
+        // (plan_id, order_index) constraint is never violated while reordering.
+        for (let idx = 0; idx < generatedTasks.length; idx++) {
+            const task = generatedTasks[idx];
+            if (!task.id) continue;
+            const { error } = await supabaseClient
+                .from('onboarding_tasks')
+                .update({ order_index: 5000 + idx })
+                .eq('id', task.id);
+            if (error) throw error;
+        }
+
+        for (let idx = 0; idx < generatedTasks.length; idx++) {
+            const task = generatedTasks[idx];
+            const status = ['pending', 'in_progress', 'completed'].includes(task.status)
+                ? task.status
+                : 'pending';
+            const completedAt = status === 'completed'
+                ? (task.completed_at || new Date().toISOString())
+                : null;
+            const payload = {
+                step_no: idx + 1,
+                order_index: idx + 1,
+                title: (task.title || '').trim() || ('Task ' + (idx + 1)),
+                instructions: task.instructions || '',
+                step_phase: (task.step_phase || 'General').trim() || 'General',
+                requires_assessment: !!task.requires_assessment
+            };
+
+            if (task.id) {
+                const { error } = await supabaseClient
+                    .from('onboarding_tasks')
+                    .update({
+                        ...payload,
+                        status: status,
+                        completed_at: completedAt
+                    })
+                    .eq('id', task.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabaseClient
+                    .from('onboarding_tasks')
+                    .insert({
+                        ...payload,
+                        onboarding_plan_id: plan.id,
+                        status: status,
+                        completed_at: completedAt,
+                        created_at: new Date().toISOString()
+                    });
+                if (error) throw error;
+            }
+        }
+
+        if (removedIds.length > 0) {
+            const { error } = await supabaseClient
+                .from('onboarding_tasks')
+                .delete()
+                .in('id', removedIds);
+            if (error) throw error;
+        }
+
+        await loadOnboardingPlansMap();
+        renderEmployees(employees);
+        renderOnboardingTable();
+        openRoadmapProgress(currentOnboardingEmployee.id);
+
+        const nextMsg = document.getElementById('progressMessage');
+        if (nextMsg) {
+            nextMsg.textContent = 'Roadmap changes saved. The employee will see the updated tasks.';
+            nextMsg.style.color = 'var(--text-success, #059669)';
+        }
+
+    } catch (err) {
+
+        console.error('SAVE ROADMAP PROGRESS ERROR:', err);
+        if (msgEl) {
+            msgEl.textContent = 'Could not save roadmap changes: ' + (err.message || 'Unknown error.');
+            msgEl.style.color = 'var(--text-danger, #ef4444)';
+        }
+
+    } finally {
+
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Save changes';
+        }
+
+    }
 
 }
 
@@ -4571,10 +4989,32 @@ async function generateRoadmap() {
     }
 
     const companyContext = document.getElementById('obCompanyContext')?.value.trim() || '';
-    const additionalInstructions = document.getElementById('obAdditionalInstructions')?.value.trim() || '';
 
     const expectations = onboardingExpectations.filter(function(e) { return e.trim(); });
-    const goals = onboardingGoals.filter(function(g) { return g.trim(); });
+
+    // The employee's own questionnaire answers are part of the roadmap brief.
+    // Merge them with the company's goals without duplicating entries.
+    const employeeGoals = Array.isArray(employee.onboarding_goals)
+        ? employee.onboarding_goals.filter(function(goal) {
+            return typeof goal === 'string' && goal.trim();
+        })
+        : [];
+    const goals = [];
+    const seenGoals = new Set();
+    onboardingGoals.concat(employeeGoals).forEach(function(goal) {
+        const value = String(goal || '').trim();
+        const key = value.toLowerCase();
+        if (!value || seenGoals.has(key)) return;
+        seenGoals.add(key);
+        goals.push(value);
+    });
+
+    const employeeNotes = String(employee.additional_info || '').trim();
+    const companyNotes = document.getElementById('obAdditionalInstructions')?.value.trim() || '';
+    const additionalInstructions = [
+        companyNotes ? 'Company notes: ' + companyNotes : '',
+        employeeNotes ? 'Employee questionnaire notes: ' + employeeNotes : ''
+    ].filter(Boolean).join('\n');
 
     const msgEl = document.getElementById('generateMessage');
     const btn = document.getElementById('generateRoadmapBtn');
@@ -4582,7 +5022,7 @@ async function generateRoadmap() {
     const btnIcon = document.getElementById('generateBtnIcon');
 
     // Validate
-    if (!companyContext && expectations.length === 0 && goals.length === 0) {
+    if (!companyContext && expectations.length === 0 && goals.length === 0 && !additionalInstructions) {
         if (msgEl) msgEl.textContent = 'Please add at least some company context, expectations, or goals before generating.';
         return;
     }
@@ -4602,7 +5042,10 @@ async function generateRoadmap() {
             name: employee.full_name || employee.name || 'Employee',
             role: employee.role || '',
             experience_level: employee.experience_level || '',
-            technical_skills: skills
+            technical_skills: skills,
+            onboarding_goals: employeeGoals,
+            additional_info: employeeNotes,
+            questionnaire_completed: !!employee.questionnaire_completed
         },
         company_context: companyContext,
         company_expectations: expectations,
@@ -5105,6 +5548,36 @@ document.addEventListener('DOMContentLoaded', function() {
         approveBtn.addEventListener('click', approveRoadmap);
     }
 
+    // Progress view: add task, edit brief, save changes
+    const addProgressTaskBtn = document.getElementById('addProgressTaskBtn');
+    if (addProgressTaskBtn) {
+        addProgressTaskBtn.addEventListener('click', function() {
+            generatedTasks.push({
+                step_no: generatedTasks.length + 1,
+                title: '',
+                instructions: '',
+                step_phase: 'Custom',
+                order_index: generatedTasks.length + 1,
+                status: 'pending',
+                completed_at: null,
+                requires_assessment: false
+            });
+            renderRoadmapProgress();
+        });
+    }
+
+    const backToProgressSetupBtn = document.getElementById('backToProgressSetupBtn');
+    if (backToProgressSetupBtn) {
+        backToProgressSetupBtn.addEventListener('click', function() {
+            showOnboardingStep('step1');
+        });
+    }
+
+    const saveRoadmapProgressBtn = document.getElementById('saveRoadmapProgressBtn');
+    if (saveRoadmapProgressBtn) {
+        saveRoadmapProgressBtn.addEventListener('click', saveRoadmapProgress);
+    }
+
     // Close success button
     const closeSuccess = document.getElementById('closeSuccessBtn');
     if (closeSuccess) {
@@ -5471,6 +5944,5 @@ document.getElementById('departmentOnboardingTaskForm')?.addEventListener('submi
     message.textContent = 'Department task saved and assigned to applicable employees.';
     event.target.reset();
 });
-
 
 

@@ -437,6 +437,35 @@ body {
     border-color: var(--text);
 }
 
+.preference-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.preference {
+    padding: 18px 20px;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.preference:hover {
+    border-color: var(--border-dark);
+    transform: translateY(-1px);
+}
+
+.preference.selected {
+    background: var(--text);
+    color: white;
+    border-color: var(--text);
+}
+
 
 /* ==========================================
    TEXTAREA
@@ -596,6 +625,21 @@ body {
 }
 
 
+.question-ai-note {
+    margin-top: 12px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    min-height: 16px;
+}
+
+.question-ai-note-error {
+    color: #b45309;
+}
+
+
 /* ==========================================
    RESPONSIVE
    ========================================== */
@@ -634,7 +678,8 @@ body {
     }
 
 
-    .goal-grid {
+    .goal-grid,
+    .preference-grid {
         grid-template-columns: 1fr;
     }
 

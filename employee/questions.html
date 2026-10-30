@@ -45,7 +45,7 @@
 
             /
             
-            5
+            6
 
         </div>
 
@@ -372,6 +372,40 @@
         >
 
             <p class="question-eyebrow">
+                YOUR PREFERENCES
+            </p>
+
+
+            <h1>
+                How do you like to learn and work?
+            </h1>
+
+
+            <p class="question-description">
+
+                Choose the approaches that make new tasks feel clear,
+                comfortable, and enjoyable for you.
+
+            </p>
+
+            <div class="preference-grid">
+                <button class="preference" type="button" data-value="Hands-on practice with small examples">Hands-on practice with small examples</button>
+                <button class="preference" type="button" data-value="Written walkthroughs and checklists">Written walkthroughs and checklists</button>
+                <button class="preference" type="button" data-value="A demo followed by trying it myself">A demo followed by trying it myself</button>
+                <button class="preference" type="button" data-value="Talking it through with a teammate">Talking it through with a teammate</button>
+                <button class="preference" type="button" data-value="Breaking work into small steps with feedback">Breaking work into small steps with feedback</button>
+                <button class="preference" type="button" data-value="Independent focus time and clear milestones">Independent focus time and clear milestones</button>
+            </div>
+
+        </div>
+
+
+        <div
+            class="question-step"
+            data-step="6"
+        >
+
+            <p class="question-eyebrow">
                 ONE LAST THING
             </p>
 
@@ -383,11 +417,10 @@
 
             <p class="question-description">
 
-                Tell us anything that might help
+                Share anything else that might help
                 personalize your onboarding.
 
             </p>
-
 
             <textarea
                 id="additionalInfo"
@@ -425,6 +458,13 @@
         <p
             id="questionError"
             class="question-error"
+        ></p>
+
+
+        <p
+            id="questionAiNote"
+            class="question-ai-note"
+            aria-live="polite"
         ></p>
 
 

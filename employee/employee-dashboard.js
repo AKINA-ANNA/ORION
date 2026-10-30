@@ -29,6 +29,8 @@ let currentUser = null;
 
 let employeeProfile = null;
 
+let passwordPromptShown = false;
+
 let employeeProjects = [];
 
 let employeeKnowledgeDocuments = [];
@@ -927,13 +929,19 @@ const changePasswordForm =
 
 const changePasswordError =
     document.getElementById("change-password-error");
-
 function openChangePasswordModal() {
     if (!changePasswordModal) return;
 
     changePasswordModal.style.display = "flex";
     changePasswordModal.classList.remove("hidden");
     changePasswordModal.classList.add("active");
+
+    const description = document.getElementById("change-password-description");
+    if (description) {
+        description.textContent = employeeProfile?.must_change_password
+            ? "You're still using your temporary password. Would you like to change it now? You can also do this later from your profile."
+            : "Enter a new password below. You must use at least 8 characters.";
+    }
 
     if (changePasswordError) {
         changePasswordError.textContent = "";
@@ -944,8 +952,28 @@ function openChangePasswordModal() {
     }
 }
 
+function dismissPasswordPrompt() {
+    if (!employeeProfile?.must_change_password || !employeeProfile?.id) return;
+
+    employeeProfile.must_change_password = false;
+    supabaseClient
+        .from("employee_profiles")
+        .update({ must_change_password: false })
+        .eq("id", employeeProfile.id)
+        .then(({ error }) => {
+            if (error) {
+                console.warn("Could not dismiss password prompt:", error);
+            }
+        });
+}
+
 function closeChangePasswordModal() {
     if (!changePasswordModal) return;
+
+    // The prompt is optional and should only appear once, on the first login.
+    // If the employee declines, keep password changes available from Profile.
+    dismissPasswordPrompt();
+
     changePasswordModal.classList.remove("active");
     setTimeout(() => {
         changePasswordModal.style.display = "none";
@@ -959,6 +987,16 @@ if (closeChangePasswordBtn) {
 
 if (cancelChangePasswordBtn) {
     cancelChangePasswordBtn.addEventListener("click", closeChangePasswordModal);
+}
+
+const profileChangePasswordBtn =
+    document.getElementById("btn-profile-change-password");
+
+if (profileChangePasswordBtn) {
+    profileChangePasswordBtn.addEventListener("click", function() {
+        closeProfilePanel();
+        openChangePasswordModal();
+    });
 }
 
 if (changePasswordModal) {
@@ -1104,7 +1142,8 @@ async function loadEmployeeProfile() {
     employeeProfile = profile;
     updateEmployeeUI();
 
-    if (employeeProfile?.must_change_password) {
+    if (employeeProfile?.must_change_password && !passwordPromptShown) {
+        passwordPromptShown = true;
         openChangePasswordModal();
     }
 
@@ -1435,6 +1474,7 @@ async function loadOnboardingRoadmap() {
             step_instructions: t.instructions || '',
             step_phase: t.step_phase || 'General',
             order_index: t.order_index || (idx + 1),
+            department_task_template_id: t.department_task_template_id || null,
             completed: t.status === 'completed' || t.status === 'complete',
             status: t.status || 'pending',
             requires_assessment: !!t.requires_assessment,
@@ -1522,8 +1562,9 @@ function renderRoadmap(tasks) {
             const isDone = task.status === 'completed' || task.status === 'complete';
             const checkIcon = isDone ? '✓' : '';
 
+            const isDepartmentTask = !!task.department_task_template_id;
             html += `
-                <div class="roadmap-task-card ${isDone ? 'completed' : ''}" id="task-card-${task.id}">
+                <div class="roadmap-task-card ${isDone ? 'completed' : ''} ${isDepartmentTask ? 'department-task' : ''}" id="task-card-${task.id}">
                     <div class="task-checkbox-wrap">
                         <button class="task-checkbox" onclick="toggleTaskStatus('${task.id}', '${task.status}')" title="${isDone ? 'Mark pending' : 'Mark complete'}">
                             ${checkIcon}
@@ -1532,6 +1573,7 @@ function renderRoadmap(tasks) {
                     <div class="task-body">
                         <div class="task-meta-top">
                             <span class="task-step-num">Step ${task.step_no || task.order_index}</span>
+                            ${isDepartmentTask ? '<span class="department-task-badge">Department task</span>' : ''}
                             <span class="task-phase-badge">${escapeHtml(task.step_phase || '')}</span>
                         </div>
                         <h4 class="task-title-text">${escapeHtml(task.title || '')}</h4>
@@ -2095,19 +2137,21 @@ function renderStepTiles() {
   container.innerHTML = filteredSteps.map((step) => {
     const isChecked = !!step.completed;
     const isAssignedTask = isSupabaseAssignedTask(step);
+    const isDepartmentTask = !!step.department_task_template_id;
     const expireTime = step.expire || (step.step_phase && step.step_phase.includes('Expire:') ? step.step_phase.replace('Expire:', '').trim() : '');
 
     return `
-      <div class="step-tile-card ${isChecked ? 'completed' : ''}" data-id="${step.id}">
+      <div class="step-tile-card ${isChecked ? 'completed' : ''} ${isDepartmentTask ? 'department-task' : ''}" data-id="${step.id}">
         
         <!-- Header -->
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" class="human-checkbox tile-checkbox" ${isChecked ? 'checked' : ''} data-id="${step.id}" id="tile-check-${step.id}">
             <label for="tile-check-${step.id}" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:6px;">
-              <span style="padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; text-transform:uppercase; ${isChecked ? 'background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;' : 'background:#F4F2EC; color:#54524B; border:1px solid #E8E5DC;'}">
+              <span class="task-phase-label" style="padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; text-transform:uppercase; ${isChecked ? 'background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;' : 'background:#F4F2EC; color:#54524B; border:1px solid #E8E5DC;'}">
                 ${escapeHtml(step.step_phase || `Step 0${step.step_no}`)}
               </span>
+              ${isDepartmentTask ? '<span class="department-task-badge">Department task</span>' : ''}
               ${expireTime ? `
                 <span style="padding:2px 6px; border-radius:12px; font-size:10px; font-weight:800; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; display:inline-flex; align-items:center; gap:4px;">
                   <i data-lucide="clock" class="w-3 h-3" style="color:#d97706;"></i>
@@ -2149,6 +2193,11 @@ function renderStepTiles() {
           <p style="font-size:12px; color:#54524B; line-height:1.5;">
             ${escapeHtml(step.step_instructions)}
           </p>
+          ${isDepartmentTask ? `
+            <button type="button" class="department-task-breakdown" data-id="${step.id}">
+              View AI task breakdown →
+            </button>
+          ` : ''}
         </div>
 
         ${step.requires_assessment && !step.assessment_completed ? `
@@ -2159,8 +2208,8 @@ function renderStepTiles() {
 
         <!-- Footer -->
         <div class="step-tile-footer" style="padding-top:10px; border-top:1px solid #E8E5DC; display:flex; align-items:center; justify-content:space-between; font-size:11px;">
-          <span style="display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:12px; background:#FAF9F5; border:1px solid #E8E5DC;">
-            <span style="width:6px; height:6px; border-radius:50%; background:${isChecked ? '#3B7A57' : '#D96B43'};"></span>
+          <span class="task-status-pill" style="display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:12px; background:#FAF9F5; border:1px solid #E8E5DC;">
+            <span style="width:6px; height:6px; border-radius:50%; background:${isChecked ? '#3B7A57' : isDepartmentTask ? '#3B82F6' : '#D96B43'};"></span>
             <span style="font-weight:600; color:#54524B;">${isChecked ? 'Completed' : 'Pending'}</span>
           </span>
 
@@ -2203,6 +2252,14 @@ function renderStepTiles() {
       e.stopPropagation();
       const step = tilesState.steps.find(s => s.id === btn.dataset.id) || employeeTasks.find(t => t.id === btn.dataset.id);
       if (step) openOnboardingAssessment(step);
+    });
+  });
+
+  container.querySelectorAll('.department-task-breakdown').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const task = tilesState.steps.find(step => step.id === btn.dataset.id);
+      if (task) openTaskGuidanceModal(task);
     });
   });
 
@@ -2801,6 +2858,7 @@ function setupTilesEvents() {
 }
 
 let currentSelectedTask = null;
+const taskGuidanceCache = new Map();
 
 function openTaskGuidanceModal(task) {
     currentSelectedTask = task;
@@ -2817,6 +2875,16 @@ function openTaskGuidanceModal(task) {
     if (titleEl) titleEl.textContent = task.step_title || task.title || 'Task Details';
     if (phaseEl) phaseEl.textContent = task.step_phase || 'General';
     if (instEl) instEl.textContent = task.step_instructions || task.instructions || 'Perform task step-by-step.';
+    const isDepartmentTask = !!task.department_task_template_id;
+    modal.classList.toggle('department-task-guidance', isDepartmentTask);
+    const taskKind = document.getElementById('guidance-task-kind');
+    if (taskKind) taskKind.hidden = !isDepartmentTask;
+    const guidanceButton = document.getElementById('btn-get-ai-guidance');
+    if (guidanceButton) guidanceButton.disabled = false;
+    const guidanceButtonLabel = document.getElementById('btn-ai-guidance-label');
+    if (guidanceButtonLabel) {
+        guidanceButtonLabel.textContent = isDepartmentTask ? 'Refresh AI breakdown' : 'Get AI Guidance';
+    }
 
     const isDone = task.completed || task.status === 'completed' || task.status === 'complete';
     if (toggleBtnText) toggleBtnText.textContent = isDone ? 'Mark Pending' : 'Mark Completed';
@@ -2824,27 +2892,54 @@ function openTaskGuidanceModal(task) {
         toggleBtn.style.background = isDone ? '#D96B43' : '#3B7A57';
     }
 
-    if (container) {
+    const cachedGuidance = taskGuidanceCache.get(task.id);
+    if (container && cachedGuidance) {
+        renderTaskGuidance(cachedGuidance.guidance, cachedGuidance.source);
+    } else if (container) {
         container.innerHTML = `
             <div style="padding:16px; text-align:center; color:#78756C; font-size:12px; font-style:italic; background:#FAF9F5; border-radius:10px; border:1px dashed #E8E5DC;">
-                Click <strong>"Get AI Guidance"</strong> above to generate a tailored 5-step action plan for this task.
+                ${isDepartmentTask
+                    ? 'Orion AI will break this department task into clear, manageable steps.'
+                    : 'Click <strong>"Get AI Guidance"</strong> above to generate a tailored action plan for this task.'}
             </div>
         `;
     }
 
     openModal(modal);
+    if (isDepartmentTask && !cachedGuidance) {
+        fetchAIGuidanceForCurrentTask();
+    }
+}
+
+function renderTaskGuidance(guidance, source) {
+    const container = document.getElementById('guidance-steps-container');
+    if (!container) return;
+    container.innerHTML = `
+        <p class="task-guidance-source">Step-by-step breakdown · ${escapeHtml(source || 'Orion AI')}</p>
+        ${guidance.map((step, index) => `
+            <div class="task-guidance-step">
+                <span class="task-guidance-step-number">${escapeHtml(String(step.step || index + 1))}</span>
+                <div>
+                    <strong>${escapeHtml(step.title || '')}</strong>
+                    <p>${escapeHtml(step.details || '')}</p>
+                </div>
+            </div>
+        `).join('')}
+    `;
 }
 
 async function fetchAIGuidanceForCurrentTask() {
     if (!currentSelectedTask) return;
+    const task = currentSelectedTask;
     const container = document.getElementById('guidance-steps-container');
     const btn = document.getElementById('btn-get-ai-guidance');
     if (!container) return;
 
+    const isDepartmentTask = !!task.department_task_template_id;
     if (btn) btn.disabled = true;
     container.innerHTML = `
-        <div style="padding:16px; text-align:center; color:#D96B43; font-size:12px; font-style:italic;">
-            ⚡ Consulting Orion AI Mentor for task guidance...
+        <div class="task-guidance-loading">
+            ${isDepartmentTask ? 'Orion AI is breaking this department task into manageable steps...' : 'Orion AI is preparing task guidance...'}
         </div>
     `;
 
@@ -2853,9 +2948,9 @@ async function fetchAIGuidanceForCurrentTask() {
         experience_level: employeeProfile?.experience_level || 'Mid',
         technical_skills: employeeProfile?.technical_skills || [],
         company_context: employeePlan?.company_context || '',
-        task_title: currentSelectedTask.step_title || currentSelectedTask.title || '',
-        task_instructions: currentSelectedTask.step_instructions || currentSelectedTask.instructions || '',
-        step_phase: currentSelectedTask.step_phase || ''
+        task_title: task.step_title || task.title || '',
+        task_instructions: task.step_instructions || task.instructions || '',
+        step_phase: task.step_phase || ''
     };
 
     try {
@@ -2874,47 +2969,31 @@ async function fetchAIGuidanceForCurrentTask() {
             body: JSON.stringify({
                 ...payload,
                 action: 'task-guidance',
-                task_id: currentSelectedTask.id
+                task_id: task.id
             })
         });
 
-        if (res.ok) {
-            const data = await res.json();
-            if (data.guidance && Array.isArray(data.guidance) && data.guidance.length > 0) {
-                container.innerHTML = data.guidance.map(g => `
-                    <div style="background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px; padding:12px; display:flex; gap:10px; align-items:flex-start;">
-                        <span style="width:22px; height:22px; border-radius:50%; background:#D96B43; color:white; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
-                            ${g.step || 1}
-                        </span>
-                        <div>
-                            <strong style="font-size:12px; color:#1C1B18; display:block; margin-bottom:2px;">${escapeHtml(g.title || '')}</strong>
-                            <p style="font-size:12px; color:#54524B; line-height:1.4; margin:0;">${escapeHtml(g.details || '')}</p>
-                        </div>
-                    </div>
-                `).join('');
-                return;
-            }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `AI guidance request failed (${res.status}).`);
+        if (!Array.isArray(data.guidance) || data.guidance.length === 0) {
+            throw new Error('Orion AI returned no task breakdown.');
         }
+        const source = data.source || 'Orion AI';
+        taskGuidanceCache.set(task.id, { guidance: data.guidance, source });
+        if (currentSelectedTask === task) renderTaskGuidance(data.guidance, source);
     } catch (err) {
         console.error('AI Guidance fetch error:', err);
+        if (currentSelectedTask === task) {
+            container.innerHTML = `
+                <div class="task-guidance-error">
+                    <p>${escapeHtml(err instanceof Error ? err.message : 'Could not generate task guidance.')}</p>
+                    <span>Use the button above to try again.</span>
+                </div>
+            `;
+        }
     } finally {
-        if (btn) btn.disabled = false;
+        if (btn && currentSelectedTask === task) btn.disabled = false;
     }
-
-    container.innerHTML = `
-        <div style="background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px; padding:12px; margin-bottom:6px;">
-            <strong style="font-size:12px; color:#1C1B18; display:block; margin-bottom:2px;">1. Review Task Requirements</strong>
-            <p style="font-size:12px; color:#54524B; line-height:1.4; margin:0;">Verify your access credentials and software tools before starting.</p>
-        </div>
-        <div style="background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px; padding:12px; margin-bottom:6px;">
-            <strong style="font-size:12px; color:#1C1B18; display:block; margin-bottom:2px;">2. Execute Step Actions</strong>
-            <p style="font-size:12px; color:#54524B; line-height:1.4; margin:0;">Follow task instructions carefully and validate output locally.</p>
-        </div>
-        <div style="background:#FAF9F5; border:1px solid #E8E5DC; border-radius:10px; padding:12px;">
-            <strong style="font-size:12px; color:#1C1B18; display:block; margin-bottom:2px;">3. Complete Task</strong>
-            <p style="font-size:12px; color:#54524B; line-height:1.4; margin:0;">Click 'Mark Completed' when finished to update your progress.</p>
-        </div>
-    `;
 }
 
 // Hook setupTilesEvents on DOMContentLoaded

@@ -169,23 +169,67 @@ serve(async (req) => {
 
     if (body?.action === "adaptive-question") {
       const targetStep = Number(body?.target_step);
-      if (![2, 3, 4].includes(targetStep)) return jsonResponse({ error: "target_step must be 2, 3, or 4." }, 400);
+      if (![2, 3, 4, 5].includes(targetStep)) return jsonResponse({ error: "target_step must be between 2 and 5." }, 400);
       const { data: employee, error: employeeError } = await adminClient
-        .from("employee_profiles").select("id").eq("user_id", authData.user.id).maybeSingle();
+        .from("employee_profiles")
+        .select("id, company_id, department_id, full_name, role, experience_level, technical_skills, onboarding_goals, working_preferences, additional_info")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
       if (employeeError || !employee) return jsonResponse({ error: "Employee membership could not be verified." }, 403);
+
+      const { data: company, error: companyError } = await adminClient
+        .from("company_profiles")
+        .select("company_name, industry, company_description, technologies, onboarding_focus")
+        .eq("id", employee.company_id)
+        .maybeSingle();
+      if (companyError || !company) throw new Error("Company context could not be loaded.");
+
+      let departmentName = "";
+      if (employee.department_id) {
+        const { data: department, error: departmentError } = await adminClient
+          .from("departments")
+          .select("name")
+          .eq("id", employee.department_id)
+          .maybeSingle();
+        if (departmentError) throw new Error("Employee department context could not be loaded.");
+        departmentName = department?.name || "";
+      }
 
       const answers = body?.previous_answers && typeof body.previous_answers === "object" ? body.previous_answers : {};
       const previousAnswers = JSON.stringify(answers).slice(0, 6000);
-      const topic = targetStep === 2 ? "experience level" : targetStep === 3 ? "skills" : "early onboarding goals";
+      const employeeContext = JSON.stringify({
+        full_name: employee.full_name || "",
+        role: employee.role || answers.role || "",
+        department: departmentName,
+        experience_level: employee.experience_level || "",
+        technical_skills: employee.technical_skills || [],
+        onboarding_goals: employee.onboarding_goals || [],
+        working_preferences: employee.working_preferences || [],
+        additional_info: employee.additional_info || "",
+      }).slice(0, 4000);
+      const companyContext = JSON.stringify({
+        company_name: company?.company_name || "",
+        industry: company?.industry || "",
+        description: company?.company_description || "",
+        technologies: company?.technologies || [],
+        onboarding_focus: company?.onboarding_focus || "",
+      }).slice(0, 4000);
+      const topic = targetStep === 2
+        ? "experience level and working style for this role"
+        : targetStep === 3
+          ? "technical skills relevant to this role, department, and company technology stack"
+          : targetStep === 4
+            ? "early onboarding goals connected to this role and company"
+            : "the learning and work approaches that would make onboarding tasks comfortable and enjoyable for this employee";
       const result = await callOpenRouter(
         "You tailor a friendly, first-time employee onboarding questionnaire. Return strict JSON only.",
-        `Return exactly {"question":"","description":"","options":[""]}. Create one simple multiple-choice question about ${topic}, tailored only from the employee's previous answers. Use plain language. Provide 4 to 8 short options. Do not ask for sensitive personal information, do not make claims about the company, and do not use external knowledge.\n\nPrevious answers: ${previousAnswers}`,
+        `Return exactly {"question":"","description":"","options":[""]}. Create one simple question about ${topic}, tailored from the employee profile, company context, and the employee's previous answers. Use plain language and provide 4 to 8 short options written specifically for this employee's role and context. Step 2 is single-select; steps 3 through 5 are select-all-that-apply. Do not ask for sensitive personal information or invent company facts beyond the supplied context. For work and learning preferences, make the options practical ways to structure or learn onboarding tasks, not personality labels.\n\nEmployee profile: ${employeeContext}\nCompany context: ${companyContext}\nPrevious answers: ${previousAnswers}`,
       );
       const question = typeof result?.question === "string" ? result.question.trim() : "";
       const description = typeof result?.description === "string" ? result.description.trim() : "";
       const options = Array.isArray(result?.options) ? result.options.map((option: unknown) => String(option).trim()).filter(Boolean).slice(0, 8) : [];
       if (!question || options.length < 4) throw new Error("AI returned an incomplete questionnaire follow-up.");
-      return jsonResponse({ question, description, options });
+      return jsonResponse({ source: "openrouter", question, description, options });
     }
 
     if (action === "task-guidance") {
@@ -208,17 +252,29 @@ serve(async (req) => {
 
       const { data: employee, error: employeeError } = await adminClient
         .from("employee_profiles")
-        .select("user_id, role, experience_level, technical_skills")
+        .select("user_id, role, experience_level, technical_skills, onboarding_goals, working_preferences")
         .eq("id", plan.employee_id)
         .maybeSingle();
       if (employeeError || !employee || employee.user_id !== authData.user.id) {
         return jsonResponse({ error: "You are not allowed to request guidance for this task." }, 403);
       }
 
-      const guidancePrompt = `You are ORION AI, a senior onboarding mentor. Return ONLY valid JSON with this exact shape: {"guidance":[{"step":1,"title":"","details":""}]}. Provide 4 to 6 practical, specific steps.\n\nEmployee role: ${employee.role || "Employee"}\nExperience: ${employee.experience_level || "Not specified"}\nSkills: ${JSON.stringify(employee.technical_skills || [])}\nCompany context: ${plan.company_context || ""}\nTask: ${task.title}\nPhase: ${task.step_phase || "General"}\nInstructions: ${task.instructions || ""}`;
+      const guidancePrompt = `You are ORION AI, a supportive onboarding mentor. Break the assigned task into 4 to 6 clear, ordered, manageable actions that let the employee complete the original task. Keep the assigned task title and expected outcome intact; these are supporting steps, not replacement tasks. Match the explanation depth to the employee's experience and use their preferred learning/work style. Only use facts in the task and company context; do not invent access, tools, people, or policies. Return ONLY valid JSON with this exact shape: {"guidance":[{"step":1,"title":"","details":""}]}.\n\nEmployee role: ${employee.role || "Employee"}\nExperience: ${employee.experience_level || "Not specified"}\nSkills: ${JSON.stringify(employee.technical_skills || [])}\nEmployee goals: ${JSON.stringify(employee.onboarding_goals || [])}\nLearning and working preferences: ${JSON.stringify(employee.working_preferences || [])}\nCompany context: ${plan.company_context || ""}\nTask: ${task.title}\nPhase: ${task.step_phase || "General"}\nInstructions: ${task.instructions || ""}`;
       const aiResult = await callOpenRouter("You produce concise, actionable onboarding guidance as strict JSON.", guidancePrompt);
-      const guidance = Array.isArray(aiResult?.guidance) ? aiResult.guidance : [];
-      if (!guidance.length) throw new Error("OpenRouter returned no valid task guidance.");
+      const guidance = Array.isArray(aiResult?.guidance)
+        ? aiResult.guidance
+          .slice(0, 8)
+          .map((item: unknown, index: number) => {
+            if (!item || typeof item !== "object") return null;
+            const step = item as Record<string, unknown>;
+            const title = typeof step.title === "string" ? step.title.trim() : "";
+            const details = typeof step.details === "string" ? step.details.trim() : "";
+            if (!title || !details) return null;
+            return { step: index + 1, title, details };
+          })
+          .filter((item: { step: number; title: string; details: string } | null): item is { step: number; title: string; details: string } => item !== null)
+        : [];
+      if (guidance.length < 3) throw new Error("OpenRouter returned an incomplete task breakdown.");
       return jsonResponse({ status: "success", source: "openrouter", task_title: task.title, guidance });
     }
 
@@ -242,16 +298,23 @@ serve(async (req) => {
 
     const { data: employeeRecord, error: employeeRecordError } = await adminClient
       .from("employee_profiles")
-      .select("id")
+      .select("id, full_name, role, experience_level, technical_skills, onboarding_goals, working_preferences, additional_info, questionnaire_completed")
       .eq("id", employeeId)
       .eq("company_id", companyId)
       .maybeSingle();
     if (employeeRecordError || !employeeRecord) return jsonResponse({ error: "The selected employee does not belong to this company." }, 403);
 
-    const role = String(employee.role || "Employee");
-    const experience = String(employee.experience_level || "Not specified");
-    const skills = Array.isArray(employee.technical_skills) ? employee.technical_skills : [];
-    const roadmapPrompt = `You are ORION AI, an employee onboarding strategist. Return ONLY valid JSON with exactly this shape: {"tasks":[{"title":"","instructions":"","step_phase":"","order_index":1}]}. Generate a practical, personalized onboarding roadmap with a dynamic number of specific tasks. Do not include markdown or commentary.\n\nEmployee: ${String(employee.name || "New employee")}\nRole: ${role}\nExperience: ${experience}\nTechnical skills: ${JSON.stringify(skills)}\nCompany context: ${companyContext}\nCompany expectations: ${JSON.stringify(expectations)}\nOnboarding goals: ${JSON.stringify(goals)}\nAdditional instructions: ${additionalInstructions}`;
+    const role = String(employeeRecord.role || "Employee");
+    const experience = String(employeeRecord.experience_level || "Not specified");
+    const skills = Array.isArray(employeeRecord.technical_skills) ? employeeRecord.technical_skills : [];
+    const employeeGoals = Array.isArray(employeeRecord.onboarding_goals)
+      ? employeeRecord.onboarding_goals.filter((value: unknown) => typeof value === "string")
+      : [];
+    const employeePreferences = Array.isArray(employeeRecord.working_preferences)
+      ? employeeRecord.working_preferences.filter((value: unknown) => typeof value === "string")
+      : [];
+    const employeeNotes = typeof employeeRecord.additional_info === "string" ? employeeRecord.additional_info : "";
+    const roadmapPrompt = `You are ORION AI, an employee onboarding strategist. Return ONLY valid JSON with exactly this shape: {"tasks":[{"title":"","instructions":"","step_phase":"","order_index":1}]}. Generate a practical, personalized onboarding roadmap with a dynamic number of specific tasks. Use the employee's own questionnaire answers to choose the right depth, examples, task formats, pacing, and early wins, and combine them with the company brief so every task feels written for this person. Respect the employee's stated learning and work preferences when breaking tasks into steps. Do not include markdown or commentary.\n\nEmployee: ${String(employeeRecord.full_name || employee.name || "New employee")}\nRole: ${role}\nExperience: ${experience}\nTechnical skills: ${JSON.stringify(skills)}\nEmployee questionnaire completed: ${employeeRecord.questionnaire_completed ? "yes" : "no"}\nEmployee onboarding goals: ${JSON.stringify(employeeGoals)}\nEmployee learning and working preferences: ${JSON.stringify(employeePreferences)}\nEmployee additional notes: ${employeeNotes}\nCompany context: ${companyContext}\nCompany expectations: ${JSON.stringify(expectations)}\nCompany and employee onboarding goals: ${JSON.stringify(goals)}\nAdditional instructions: ${additionalInstructions}`;
 
     try {
       const aiResult = await callOpenRouter("You create practical, structured employee onboarding roadmaps as strict JSON.", roadmapPrompt);
