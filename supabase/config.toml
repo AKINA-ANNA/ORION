@@ -437,6 +437,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/generate-onboarding-roadmap/index.ts"
 
+[functions.generate-project-plan-]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/generate-project-plan-/index.ts"
+
 [functions.mentor-chat]
 enabled = true
 verify_jwt = true

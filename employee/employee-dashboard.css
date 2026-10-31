@@ -1957,18 +1957,21 @@ button {
 }
 
 .step-tile-card.department-task {
-    background: #eff6ff;
+    background: linear-gradient(120deg, #ffffff 0%, #f7fbff 58%, #eef6ff 100%);
     border-color: #bfdbfe;
+    border-left: 3px solid #60a5fa;
 }
 
 .step-tile-card.department-task:hover {
-    background: #eaf3ff;
+    background: linear-gradient(120deg, #ffffff 0%, #f2f8ff 58%, #e8f2ff 100%);
     border-color: #60a5fa;
+    box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.13);
 }
 
 .step-tile-card.department-task.completed {
-    background: #dbeafe;
+    background: linear-gradient(120deg, #f8fbff 0%, #eaf3ff 100%);
     border-color: #93c5fd;
+    border-left-color: #3b82f6;
 }
 
 .step-tile-card.department-task .task-phase-label {
@@ -2325,3 +2328,30 @@ button {
 .project-details-members { display: grid; gap: 10px; margin-top: 18px; }
 .project-details-member { align-items: center; border-top: 1px solid #e8e5dc; display: flex; gap: 10px; padding-top: 10px; }
 .project-member-avatar { align-items: center; background: #e8f0ea; border-radius: 50%; color: #24543a; display: flex; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
+
+.employee-project-heading { border-bottom: 1px solid #e8e5dc; margin-bottom: 18px; padding: 4px 36px 14px 0; }
+.employee-project-heading .eyebrow { color: #4774b8; font-size: 10px; font-weight: 800; letter-spacing: .12em; margin: 0 0 7px; }
+.employee-project-heading h2 { font-size: 26px; margin: 0; }
+.employee-project-summary { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin: 16px 0 22px; }
+.employee-project-summary-card { background: #f5f8fd; border: 1px solid #e1eaf7; border-radius: 12px; padding: 12px; }
+.employee-project-summary-card span { color: #6d6961; display: block; font-size: 11px; }
+.employee-project-summary-card strong { color: #1c1b18; display: block; font-size: 16px; margin-top: 5px; }
+.employee-project-task { background: #fff; border: 1px solid #e8e5dc; border-radius: 12px; margin: 10px 0; padding: 14px; }
+.employee-project-task > p { color: #6d6961; font-size: 12px; line-height: 1.5; margin: 6px 0 10px; }
+.employee-project-assignment { align-items: center; border-top: 1px solid #eef0f3; display: flex; flex-wrap: wrap; gap: 8px; padding: 9px 0 0; }
+.employee-project-assignment > span:first-child { flex: 1; font-size: 12px; font-weight: 600; }
+.project-task-status { border-radius: 999px; font-size: 10px; font-weight: 700; padding: 4px 8px; text-transform: capitalize; }
+.project-task-status.status-completed { background: #e3ede6; color: #2d6a4f; }
+.project-task-status.status-in_progress { background: #fff3d6; color: #946200; }
+.project-task-status.status-pending { background: #eff6ff; color: #2563a6; }
+.project-task-toggle { background: #f5f8fd; border: 1px solid #d5e2f4; border-radius: 8px; color: #245b9e; cursor: pointer; font-size: 11px; font-weight: 700; padding: 6px 9px; }
+.project-task-toggle:hover { background: #eaf3ff; }
+.project-task-toggle:disabled { cursor: wait; opacity: .6; }
+.project-files { border-top: 1px solid #e8e5dc; margin-top: 22px; padding-top: 16px; }
+.project-files h3 { font-size: 16px; margin: 0 0 5px; }
+.project-files > p { color: #6d6961; font-size: 12px; margin: 4px 0 12px; }
+.project-files input[type="file"] { border: 1px dashed #b9c9df; border-radius: 10px; color: #54524b; font-size: 12px; max-width: 100%; padding: 10px; width: 100%; }
+.project-files .project-files-status { min-height: 16px; }
+.project-files-list { display: grid; gap: 8px; }
+.project-files-list a { background: #f5f8fd; border: 1px solid #e1eaf7; border-radius: 9px; color: #245b9e; font-size: 12px; overflow-wrap: anywhere; padding: 9px 11px; text-decoration: none; }
+.project-files-list a:hover { background: #eaf3ff; text-decoration: underline; }

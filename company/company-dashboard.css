@@ -3194,10 +3194,19 @@ td {
 .project-card-meta { color: #777; display: block; font-size: 12px; margin-top: 12px; }
 .project-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .project-card-actions button { padding: 8px 11px; font-size: 12px; }
-.project-employee-picker { border: 1px solid #e7e7e7; border-radius: 10px; max-height: 210px; overflow: auto; padding: 8px; }
-.project-employee-option { align-items: center; display: flex; gap: 9px; padding: 8px; font-size: 13px; }
-.project-employee-option small { color: #777; }
 .project-details-members { display: grid; gap: 10px; margin-top: 18px; }
 .project-details-member { align-items: center; border-top: 1px solid #eee; display: flex; gap: 10px; padding-top: 10px; }
 .project-member-avatar { align-items: center; background: #e8f0ea; border-radius: 50%; color: #24543a; display: flex; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
 .project-modal-card { max-height: 90vh; overflow-y: auto; }
+.project-task-ownership { display: grid; gap: 8px; }
+.project-task-ownership-item { background: #faf9f5; border: 1px solid #e8e5dc; border-radius: 10px; display: grid; gap: 5px; padding: 10px 12px; }
+.project-task-ownership-item strong { font-size: 13px; }
+.project-task-ownership-item span { color: #6d6961; font-size: 12px; }
+.project-files { border-top: 1px solid #e8e5dc; margin-top: 20px; padding-top: 16px; }
+.project-files h3 { font-size: 16px; margin: 0 0 5px; }
+.project-files > p { color: #6d6961; font-size: 12px; margin: 4px 0 12px; }
+.project-files input[type="file"] { border: 1px dashed #c9c4b8; border-radius: 10px; color: #54524b; font-size: 12px; max-width: 100%; padding: 10px; width: 100%; }
+.project-files .project-files-status { min-height: 16px; }
+.project-files-list { display: grid; gap: 8px; }
+.project-files-list a { background: #f5f8fd; border: 1px solid #e1eaf7; border-radius: 9px; color: #245b9e; font-size: 12px; overflow-wrap: anywhere; padding: 9px 11px; text-decoration: none; }
+.project-files-list a:hover { background: #eaf3ff; text-decoration: underline; }

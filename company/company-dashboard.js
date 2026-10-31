@@ -5623,13 +5623,31 @@ function projectPreview(value) {
     return text.length > 130 ? `${text.slice(0, 130)}…` : (text || 'No problem statement provided.');
 }
 
+async function getProjectPlanFunctionError(error) {
+    const response = error?.context;
+    if (!response || typeof response.text !== 'function') {
+        return error?.message || 'The AI project planner could not create a team plan.';
+    }
+
+    const responseText = await response.text();
+    if (responseText) {
+        try {
+            const body = JSON.parse(responseText);
+            return body.error || body.message || `${responseText} (HTTP ${response.status})`;
+        } catch {
+            return `${responseText.slice(0, 500)} (HTTP ${response.status})`;
+        }
+    }
+    return `${error.message || 'The AI project planner request failed.'} (HTTP ${response.status})`;
+}
+
 async function loadCompanyProjects() {
     const grid = document.getElementById('companyProjectsGrid');
     if (!grid || !companyProfile?.id) return;
     grid.innerHTML = '<div class="empty-state panel"><h4>Loading projects...</h4></div>';
     const { data, error } = await supabaseClient
         .from('company_projects')
-        .select('id, project_name, problem_statement, description, deadline, created_at, project_members(id)')
+        .select('id, project_name, problem_statement, description, deadline, department_id, departments(name), created_at, project_members(id)')
         .eq('company_id', companyProfile.id)
         .order('created_at', { ascending: false });
     if (error) {
@@ -5665,6 +5683,9 @@ function renderCompanyProjects() {
         const members = document.createElement('span');
         members.className = 'project-card-meta';
         members.textContent = `${project.project_members?.length || 0} member${project.project_members?.length === 1 ? '' : 's'}`;
+        const department = document.createElement('span');
+        department.className = 'project-card-meta project-department';
+        department.textContent = project.departments?.name || 'Department not set';
         const actions = document.createElement('div');
         actions.className = 'project-card-actions';
         [['View', () => viewCompanyProject(project.id)], ['Edit', () => openProjectModal(project.id)], ['Delete', () => deleteCompanyProject(project.id)]].forEach(([label, handler]) => {
@@ -5673,29 +5694,8 @@ function renderCompanyProjects() {
             if (label === 'Delete') button.className = 'danger-button';
             actions.appendChild(button);
         });
-        card.append(title, statement, deadline, members, actions);
+        card.append(title, statement, deadline, department, members, actions);
         grid.appendChild(card);
-    });
-}
-
-function renderProjectEmployeePicker(selectedIds = []) {
-    const picker = document.getElementById('projectEmployeePicker');
-    if (!picker) return;
-    picker.replaceChildren();
-    if (!employees.length) {
-        picker.textContent = 'No employees are available to assign.';
-        return;
-    }
-    const selected = new Set(selectedIds.map(String));
-    employees.forEach(employee => {
-        const label = document.createElement('label');
-        label.className = 'project-employee-option';
-        const input = document.createElement('input');
-        input.type = 'checkbox'; input.value = employee.id; input.checked = selected.has(String(employee.id));
-        const details = document.createElement('span');
-        const name = document.createElement('strong'); name.textContent = employee.full_name || employee.email || 'Employee';
-        const role = document.createElement('small'); role.textContent = ` · ${employee.role || 'Employee'}`;
-        details.append(name, role); label.append(input, details); picker.appendChild(label);
     });
 }
 
@@ -5707,19 +5707,33 @@ async function openProjectModal(projectId = null) {
     document.getElementById('projectId').value = projectId || '';
     document.getElementById('projectMessage').textContent = '';
     document.getElementById('projectModalTitle').textContent = projectId ? 'Edit project' : 'Create project';
-    let memberIds = [];
-    if (projectId) {
-        const project = companyProjects.find(item => item.id === projectId);
-        if (!project) return;
+    const departmentSelect = document.getElementById('projectDepartment');
+    const project = projectId ? companyProjects.find(item => item.id === projectId) : null;
+    if (projectId && !project) return;
+    departmentSelect.replaceChildren();
+    const prompt = document.createElement('option');
+    prompt.value = '';
+    prompt.textContent = 'Choose a department';
+    prompt.disabled = true;
+    prompt.selected = true;
+    departmentSelect.appendChild(prompt);
+    departments.forEach(department => {
+        const option = document.createElement('option');
+        option.value = department.id;
+        option.textContent = department.name;
+        departmentSelect.appendChild(option);
+    });
+    departmentSelect.disabled = Boolean(project?.department_id);
+    document.getElementById('projectAssignmentHelp').textContent = projectId
+        ? 'The project team and task assignments are preserved when editing a project.'
+        : 'All employees in this department will join the project. Orion AI assigns tasks based on each person’s skills and experience.';
+    if (project) {
         document.getElementById('projectName').value = project.project_name || '';
         document.getElementById('projectProblemStatement').value = project.problem_statement || '';
         document.getElementById('projectDescription').value = project.description || '';
         document.getElementById('projectDeadline').value = project.deadline || '';
-        const { data, error } = await supabaseClient.from('project_members').select('employee_id').eq('project_id', projectId);
-        if (error) console.error('PROJECT MEMBERS LOAD ERROR:', error);
-        memberIds = (data || []).map(member => member.employee_id);
+        departmentSelect.value = project.department_id || '';
     }
-    renderProjectEmployeePicker(memberIds);
     modal.classList.add('active');
 }
 
@@ -5767,7 +5781,8 @@ async function saveCompanyProject(event) {
         project_name: document.getElementById('projectName').value.trim(),
         problem_statement: document.getElementById('projectProblemStatement').value.trim(),
         description: document.getElementById('projectDescription').value.trim(),
-        deadline: document.getElementById('projectDeadline').value || null
+        deadline: document.getElementById('projectDeadline').value || null,
+        department_id: document.getElementById('projectDepartment').value || null
     };
     const projectData = {
         ...payload,
@@ -5775,39 +5790,79 @@ async function saveCompanyProject(event) {
         created_by: user.id
     };
     console.log('Project Data', projectData);
-    const employeeIds = [...document.querySelectorAll('#projectEmployeePicker input:checked')].map(input => input.value);
-    if (!payload.project_name || !payload.problem_statement) return;
+    if (!payload.project_name || !payload.problem_statement || !payload.department_id) {
+        message.textContent = 'Enter a project name and problem statement, then choose a department.';
+        return;
+    }
     button.disabled = true; message.textContent = '';
+    let projectId = id;
     try {
-        let projectId = id;
         if (id) {
             const { error } = await supabaseClient.from('company_projects').update(payload).eq('id', id).eq('company_id', companyProfile.id);
             if (error) throw error;
         } else {
-            console.log('Inserting project with authenticated client', projectData);
             const { data, error } = await supabaseClient.from('company_projects').insert(projectData).select('id').single();
             if (error) throw error;
             projectId = data.id;
-        }
-        const { data: existing, error: membersError } = await supabaseClient.from('project_members').select('id, employee_id').eq('project_id', projectId);
-        if (membersError) throw membersError;
-        const selected = new Set(employeeIds);
-        const removals = (existing || []).filter(member => !selected.has(member.employee_id));
-        const additions = employeeIds.filter(employeeId => !(existing || []).some(member => member.employee_id === employeeId));
-        if (removals.length) {
-            const { error } = await supabaseClient.from('project_members').delete().in('id', removals.map(member => member.id));
-            if (error) throw error;
-        }
-        if (additions.length) {
-            const { error } = await supabaseClient.from('project_members').insert(additions.map(employee_id => ({ project_id: projectId, employee_id })));
-            if (error) throw error;
+            const { data: plan, error: planError } = await supabaseClient.functions.invoke('generate-project-plan-', {
+                body: {
+                    department_id: payload.department_id,
+                    project_name: payload.project_name,
+                    problem_statement: payload.problem_statement,
+                    description: payload.description,
+                    deadline: payload.deadline
+                }
+            });
+            if (planError) {
+                console.error('PROJECT PLAN FUNCTION ERROR:', planError);
+                if (planError.name === 'FunctionsFetchError') {
+                    throw new Error(`Could not reach the project planner. Confirm generate-project-plan- is deployed to ${SUPABASE_URL} and its latest updates are published.`);
+                }
+                throw new Error(await getProjectPlanFunctionError(planError));
+            }
+            if (plan?.error) {
+                throw new Error(plan.error);
+            }
+            if (
+                plan?.department_id !== payload.department_id ||
+                !Array.isArray(plan?.members) ||
+                plan.members.length === 0 ||
+                !Array.isArray(plan?.tasks) ||
+                plan.tasks.length < 3 ||
+                plan.tasks.some(task => !plan.members.includes(task.assignee_id))
+            ) {
+                throw new Error('The AI project planner returned an incomplete team and task plan.');
+            }
+            const { error: membersError } = await supabaseClient.from('project_members').insert(
+                plan.members.map(employee_id => ({ project_id: projectId, employee_id }))
+            );
+            if (membersError) throw membersError;
+            const { error: tasksError } = await supabaseClient.from('project_tasks').insert(
+                plan.tasks.map(task => ({
+                    project_id: projectId,
+                    title: task.title,
+                    description: task.description,
+                    assignment_type: 'employee',
+                    assigned_employee_id: task.assignee_id,
+                    created_by: user.id
+                }))
+            );
+            if (tasksError) throw tasksError;
         }
         closeProjectModal();
         await loadCompanyProjects();
     } catch (error) {
         console.error(error);
-        console.error(JSON.stringify(error, null, 2));
-        message.textContent = JSON.stringify(error, null, 2) || error.message;
+        if (!id && projectId) {
+            const { error: cleanupError } = await supabaseClient.from('company_projects')
+                .delete().eq('id', projectId).eq('company_id', companyProfile.id);
+            if (cleanupError) {
+                console.error('PROJECT CREATION CLEANUP ERROR:', cleanupError);
+                message.textContent = `${error.message || 'Project creation failed.'} The project record could not be removed; refresh and review it before retrying.`;
+                return;
+            }
+        }
+        message.textContent = error.message || 'Project creation failed. Please try again.';
     } finally { button.disabled = false; }
 }
 
@@ -5824,9 +5879,70 @@ async function viewCompanyProject(projectId) {
     if (!modal || !container) return;
     container.textContent = 'Loading project...'; modal.classList.add('active');
     const { data: project, error } = await supabaseClient.from('company_projects')
-        .select('id, project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, role, experience_level, department_id, departments(name))), project_tasks(id, title, description, assignment_type, assigned_employee_id, status, deadline, project_task_assignments(id, employee_id, status, completed_at))')
+        .select('id, project_name, problem_statement, description, deadline, department_id')
         .eq('id', projectId).maybeSingle();
-    if (error || !project) { container.textContent = 'Project details could not be loaded.'; return; }
+    if (error || !project) {
+        console.error('PROJECT DETAILS LOAD ERROR:', error);
+        container.textContent = `Project details could not be loaded.${error?.message ? ` ${error.message}` : ''}`;
+        return;
+    }
+
+    const [membersResult, tasksResult] = await Promise.all([
+        supabaseClient.from('project_members').select('employee_id').eq('project_id', projectId),
+        supabaseClient.from('project_tasks')
+            .select('id, title, description, assignment_type, assigned_employee_id, status, deadline')
+            .eq('project_id', projectId)
+            .eq('status', 'open')
+    ]);
+    if (membersResult.error || tasksResult.error) {
+        const detailError = membersResult.error || tasksResult.error;
+        console.error('PROJECT TEAM OR TASKS LOAD ERROR:', detailError);
+        container.textContent = `Project details could not be loaded. ${detailError.message}`;
+        return;
+    }
+
+    const memberIds = (membersResult.data || []).map(member => member.employee_id);
+    const tasks = tasksResult.data || [];
+    const taskIds = tasks.map(task => task.id);
+    const [employeesResult, assignmentsResult] = await Promise.all([
+        memberIds.length
+            ? supabaseClient.from('employee_profiles')
+                .select('id, full_name, role, experience_level, department_id')
+                .in('id', memberIds)
+            : Promise.resolve({ data: [], error: null }),
+        taskIds.length
+            ? supabaseClient.from('project_task_assignments')
+                .select('id, project_task_id, employee_id, status, completed_at')
+                .in('project_task_id', taskIds)
+            : Promise.resolve({ data: [], error: null })
+    ]);
+    if (employeesResult.error || assignmentsResult.error) {
+        const detailError = employeesResult.error || assignmentsResult.error;
+        console.error('PROJECT PEOPLE OR ASSIGNMENTS LOAD ERROR:', detailError);
+        container.textContent = `Project details could not be loaded. ${detailError.message}`;
+        return;
+    }
+
+    const employeesById = new Map((employeesResult.data || []).map(employee => [employee.id, employee]));
+    const assignmentsByTask = new Map();
+    (assignmentsResult.data || []).forEach(assignment => {
+        const assignedEmployee = employeesById.get(assignment.employee_id);
+        const entries = assignmentsByTask.get(assignment.project_task_id) || [];
+        entries.push({ ...assignment, employee_profiles: assignedEmployee ? { full_name: assignedEmployee.full_name } : null });
+        assignmentsByTask.set(assignment.project_task_id, entries);
+    });
+    project.project_members = memberIds.map(employee_id => ({
+        employee_id,
+        employee_profiles: employeesById.get(employee_id) || null
+    }));
+    project.project_tasks = tasks.map(task => ({
+        ...task,
+        project_task_assignments: assignmentsByTask.get(task.id) || []
+    }));
+    project.departments = {
+        name: departments.find(department => department.id === project.department_id)?.name || ''
+    };
+
     container.replaceChildren();
     [['h2', project.project_name], ['h4', 'Problem statement'], ['p', project.problem_statement], ['h4', 'Description'], ['p', project.description || 'No description provided.'], ['h4', 'Deadline'], ['p', projectDateLabel(project.deadline)], ['h4', 'Assigned employees']].forEach(([tag, value]) => { const element = document.createElement(tag); element.textContent = value; container.appendChild(element); });
     const memberList = document.createElement('div'); memberList.className = 'project-details-members';
@@ -5840,6 +5956,7 @@ async function viewCompanyProject(projectId) {
     });
     container.appendChild(memberList);
     renderCompanyProjectAnalysis(container, project);
+    renderCompanyProjectFiles(container, project.id);
 }
 
 function renderCompanyProjectAnalysis(container, project) {
@@ -5855,9 +5972,10 @@ function renderCompanyProjectAnalysis(container, project) {
     const section = document.createElement('section');
     section.className = 'project-analysis';
     section.innerHTML = `<h3>Project Analysis</h3>
-      <div class="project-card-meta">Employees: ${project.project_members?.length || 0} · Tasks: ${tasks.length} · Completed: ${completed} · Pending: ${pending} · Completion: ${completion}% · Overdue: ${overdue}</div>
+      <div class="project-card-meta">Department: ${escapeHTML(project.departments?.name || 'Not set')} · Employees: ${project.project_members?.length || 0} · Tasks: ${tasks.length} · Completed: ${completed} · Pending: ${pending} · Completion: ${completion}% · Overdue: ${overdue}</div>
       <h4>Task completion breakdown</h4><p>${completed} completed assignments and ${pending} pending assignments.</p>
       <h4>Employee progress</h4><div id="projectEmployeeProgress"></div>
+      <h4>Task ownership</h4><div class="project-task-ownership"></div>
       <h4>Create project task</h4>
       <form id="companyProjectTaskForm">
         <input id="companyProjectTaskTitle" placeholder="Task title" required>
@@ -5867,6 +5985,17 @@ function renderCompanyProjectAnalysis(container, project) {
         <button class="primary-button" type="submit">Create task</button>
         <p id="companyProjectTaskMessage" class="form-message"></p>
       </form>`;
+    if (!project.project_members?.length) {
+        const warning = document.createElement('p');
+        warning.className = 'form-message';
+        warning.textContent = 'No employees are assigned to this project, so it will not appear in employee dashboards.';
+        section.insertBefore(warning, section.firstChild.nextSibling);
+    } else if (!tasks.length) {
+        const warning = document.createElement('p');
+        warning.className = 'form-message';
+        warning.textContent = 'The project team is assigned, but no project tasks are saved yet.';
+        section.insertBefore(warning, section.firstChild.nextSibling);
+    }
     const progress = section.querySelector('#projectEmployeeProgress');
     (project.project_members || []).forEach(member => {
         const employee = member.employee_profiles;
@@ -5879,6 +6008,22 @@ function renderCompanyProjectAnalysis(container, project) {
         const option = document.createElement('option');
         option.value = member.employee_id; option.textContent = employee?.full_name || 'Employee';
         section.querySelector('#companyProjectTaskAssignee').appendChild(option);
+    });
+    const ownership = section.querySelector('.project-task-ownership');
+    if (!tasks.length) {
+        ownership.textContent = 'No tasks have been generated for this project.';
+    }
+    tasks.forEach(task => {
+        (task.project_task_assignments || []).forEach(assignment => {
+            const item = document.createElement('div');
+            item.className = 'project-task-ownership-item';
+            const taskName = document.createElement('strong');
+            taskName.textContent = task.title;
+            const assignee = document.createElement('span');
+            assignee.textContent = `${assignment.employee_profiles?.full_name || 'Team member'} · ${assignment.status.replace('_', ' ')}`;
+            item.append(taskName, assignee);
+            ownership.appendChild(item);
+        });
     });
     section.querySelector('#companyProjectTaskForm').addEventListener('submit', async event => {
         event.preventDefault();
@@ -5900,6 +6045,74 @@ function renderCompanyProjectAnalysis(container, project) {
         await viewCompanyProject(project.id);
     });
     container.appendChild(section);
+}
+
+function renderCompanyProjectFiles(container, projectId) {
+    const section = document.createElement('section');
+    section.className = 'project-files';
+    const heading = document.createElement('h3');
+    heading.textContent = 'Shared project files';
+    const help = document.createElement('p');
+    help.textContent = 'Files shared with everyone assigned to this project.';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    input.setAttribute('aria-label', 'Upload a shared project file');
+    const status = document.createElement('p');
+    status.className = 'project-files-status';
+    const list = document.createElement('div');
+    list.className = 'project-files-list';
+    section.append(heading, help, input, status, list);
+    container.appendChild(section);
+
+    const refresh = async () => {
+        list.replaceChildren();
+        const { data, error } = await supabaseClient.storage.from('project-files')
+            .list(projectId, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+        if (error) {
+            status.textContent = `Shared files could not be loaded: ${error.message}`;
+            return;
+        }
+        status.textContent = data.length ? '' : 'No shared files yet.';
+        for (const file of data.filter(item => item.id)) {
+            const { data: signed, error: urlError } = await supabaseClient.storage.from('project-files')
+                .createSignedUrl(`${projectId}/${file.name}`, 3600);
+            if (urlError) {
+                console.error('PROJECT FILE LINK ERROR:', urlError);
+                status.textContent = 'Some shared files could not be opened. Refresh the project and try again.';
+                continue;
+            }
+            const link = document.createElement('a');
+            link.href = signed.signedUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = file.name.replace(/^\d+-[a-f0-9-]+-/, '');
+            list.appendChild(link);
+        }
+    };
+
+    input.addEventListener('change', async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (file.size > 25 * 1024 * 1024) {
+            status.textContent = 'Files must be 25 MB or smaller.';
+            input.value = '';
+            return;
+        }
+        status.textContent = 'Uploading shared file...';
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${projectId}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const { error } = await supabaseClient.storage.from('project-files').upload(path, file, { upsert: false });
+        if (error) {
+            status.textContent = `File upload failed: ${error.message}`;
+            input.value = '';
+            return;
+        }
+        input.value = '';
+        status.textContent = 'File uploaded.';
+        await refresh();
+    });
+    refresh();
 }
 
 document.getElementById('addProjectButton')?.addEventListener('click', () => openProjectModal());
@@ -5944,5 +6157,3 @@ document.getElementById('departmentOnboardingTaskForm')?.addEventListener('submi
     message.textContent = 'Department task saved and assigned to applicable employees.';
     event.target.reset();
 });
-
-

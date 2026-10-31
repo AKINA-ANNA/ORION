@@ -1814,8 +1814,9 @@
             <textarea id="projectDescription"></textarea>
             <label for="projectDeadline">Deadline</label>
             <input id="projectDeadline" type="date">
-            <label>Assigned employees</label>
-            <div id="projectEmployeePicker" class="project-employee-picker"></div>
+            <label for="projectDepartment">Department team</label>
+            <select id="projectDepartment" required></select>
+            <p id="projectAssignmentHelp" class="form-message">All employees in this department will join the project. Orion AI assigns tasks based on each person’s skills and experience.</p>
             <button id="saveProjectButton" type="submit" class="primary-button full-width">Save Project</button>
             <p id="projectMessage" class="form-message"></p>
         </form>

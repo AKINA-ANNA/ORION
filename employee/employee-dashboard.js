@@ -2179,7 +2179,7 @@ function renderStepTiles() {
           </h4>
           ${step.requires_assessment ? `
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:6px 0 8px;">
-              <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; ${step.assessment_completed ? 'background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;' : 'background:#FDF2E9; color:#B45309; border:1px solid #F5D2C5;'}">
+              <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; ${step.assessment_completed ? 'background:#E3EDE6; color:#2D6A4F; border:1px solid #C5DCD0;' : isDepartmentTask ? 'background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe;' : 'background:#FDF2E9; color:#B45309; border:1px solid #F5D2C5;'}">
                 <i data-lucide="${step.assessment_completed ? 'check-circle-2' : 'clipboard-check'}" style="width:12px; height:12px;"></i>
                 <span>${step.assessment_completed ? 'Test passed' : (step.assessment_attempts ? `Test required · ${step.assessment_attempts} attempt${Number(step.assessment_attempts) === 1 ? '' : 's'}` : 'Test required')}</span>
               </span>
@@ -2201,7 +2201,7 @@ function renderStepTiles() {
         </div>
 
         ${step.requires_assessment && !step.assessment_completed ? `
-          <button class="start-assessment-btn" data-id="${step.id}" style="align-self:flex-start; margin-bottom:12px; padding:6px 12px; border:1px solid #F5D2C5; border-radius:10px; background:#FDF2E9; color:#B45309; font-size:11px; font-weight:700; cursor:pointer;">
+          <button class="start-assessment-btn" data-id="${step.id}" style="align-self:flex-start; margin-bottom:12px; padding:6px 12px; border:1px solid ${isDepartmentTask ? '#bfdbfe' : '#F5D2C5'}; border-radius:10px; background:${isDepartmentTask ? '#dbeafe' : '#FDF2E9'}; color:${isDepartmentTask ? '#1d4ed8' : '#B45309'}; font-size:11px; font-weight:700; cursor:pointer;">
             ${step.assessment_attempts ? 'Retake test' : 'Start test'}
           </button>
         ` : ''}
@@ -3170,12 +3170,84 @@ async function loadEmployeeProjects() {
     if (!grid) return;
     grid.innerHTML = '<div class="empty-state"><h4>Loading projects...</h4></div>';
     const profile = await getCurrentEmployeeProjectProfile();
-    if (!profile?.id) { renderEmployeeProjects([], 'Projects could not be loaded.'); return; }
-    const { data, error } = await supabaseClient.from('project_members')
-        .select('project_id, company_projects(id, project_name, problem_statement, description, deadline, project_members(id), project_tasks(id, title, description, deadline, project_task_assignments(id, employee_id, status, completed_at)))')
+    if (!profile?.id) { renderEmployeeProjects([], 'Projects could not be loaded. Check that your employee profile is linked to your login.'); return; }
+    const { data: memberships, error: membershipsError } = await supabaseClient.from('project_members')
+        .select('project_id')
         .eq('employee_id', profile.id);
-    if (error) { console.error('EMPLOYEE PROJECTS LOAD ERROR:', error); renderEmployeeProjects([], 'Projects could not be loaded.'); return; }
-    employeeProjects = (data || []).map(item => item.company_projects).filter(Boolean);
+    if (membershipsError) {
+        console.error('EMPLOYEE PROJECT MEMBERSHIPS LOAD ERROR:', membershipsError);
+        renderEmployeeProjects([], `Projects could not be loaded. ${membershipsError.message}`);
+        return;
+    }
+    const projectIds = [...new Set((memberships || []).map(member => member.project_id))];
+    if (!projectIds.length) {
+        employeeProjects = [];
+        renderEmployeeProjects(employeeProjects);
+        return;
+    }
+
+    const { data: projects, error: projectsError } = await supabaseClient.from('company_projects')
+        .select('id, project_name, problem_statement, description, deadline, department_id')
+        .in('id', projectIds);
+    if (projectsError) {
+        console.error('EMPLOYEE PROJECTS LOAD ERROR:', projectsError);
+        renderEmployeeProjects([], `Projects could not be loaded. ${projectsError.message}`);
+        return;
+    }
+
+    const [membersResult, tasksResult, departmentResult] = await Promise.all([
+        supabaseClient.from('project_members').select('project_id').in('project_id', projectIds),
+        supabaseClient.from('project_tasks').select('id, project_id').in('project_id', projectIds).eq('status', 'open'),
+        projects?.length && projects.some(project => project.department_id)
+            ? supabaseClient.from('departments').select('id, name').in('id', projects.map(project => project.department_id).filter(Boolean))
+            : Promise.resolve({ data: [], error: null })
+    ]);
+    if (membersResult.error || tasksResult.error) {
+        const detailError = membersResult.error || tasksResult.error;
+        console.error('EMPLOYEE PROJECT SUMMARY LOAD ERROR:', detailError);
+        renderEmployeeProjects([], `Projects could not be loaded. ${detailError.message}`);
+        return;
+    }
+    if (departmentResult.error) {
+        console.error('EMPLOYEE PROJECT DEPARTMENTS LOAD ERROR:', departmentResult.error);
+    }
+
+    const tasks = tasksResult.data || [];
+    const { data: assignments, error: assignmentsError } = tasks.length
+        ? await supabaseClient.from('project_task_assignments')
+            .select('project_task_id, status')
+            .in('project_task_id', tasks.map(task => task.id))
+        : { data: [], error: null };
+    if (assignmentsError) {
+        console.error('EMPLOYEE PROJECT PROGRESS LOAD ERROR:', assignmentsError);
+        renderEmployeeProjects([], `Projects could not be loaded. ${assignmentsError.message}`);
+        return;
+    }
+
+    const memberCounts = new Map();
+    (membersResult.data || []).forEach(member => memberCounts.set(member.project_id, (memberCounts.get(member.project_id) || 0) + 1));
+    const departmentsById = new Map((departmentResult.data || []).map(department => [department.id, department.name]));
+    const tasksByProject = new Map();
+    tasks.forEach(task => {
+        const projectTasks = tasksByProject.get(task.project_id) || [];
+        projectTasks.push(task);
+        tasksByProject.set(task.project_id, projectTasks);
+    });
+    const assignmentsByTask = new Map();
+    (assignments || []).forEach(assignment => {
+        const taskAssignments = assignmentsByTask.get(assignment.project_task_id) || [];
+        taskAssignments.push(assignment);
+        assignmentsByTask.set(assignment.project_task_id, taskAssignments);
+    });
+    employeeProjects = (projects || []).map(project => ({
+        ...project,
+        departments: { name: departmentsById.get(project.department_id) || '' },
+        project_members: Array.from({ length: memberCounts.get(project.id) || 0 }),
+        project_tasks: (tasksByProject.get(project.id) || []).map(task => ({
+            ...task,
+            project_task_assignments: assignmentsByTask.get(task.id) || []
+        }))
+    }));
     renderEmployeeProjects(employeeProjects);
 }
 
@@ -3193,13 +3265,14 @@ function renderEmployeeProjects(projects, errorMessage = '') {
         const title = document.createElement('h3'); title.textContent = project.project_name;
         const statement = document.createElement('p'); statement.textContent = employeeProjectPreview(project.problem_statement);
         const deadline = document.createElement('span'); deadline.className = 'project-card-meta'; deadline.textContent = `Deadline: ${employeeProjectDateLabel(project.deadline)}`;
+        const department = document.createElement('span'); department.className = 'project-card-meta'; department.textContent = `Department: ${project.departments?.name || 'Not specified'}`;
         const team = document.createElement('span'); team.className = 'project-card-meta'; team.textContent = `Team size: ${project.project_members?.length || 0}`;
         const assignments = (project.project_tasks || []).flatMap(task => task.project_task_assignments || []);
         const completed = assignments.filter(item => item.status === 'completed').length;
         const work = document.createElement('span'); work.className = 'project-card-meta'; work.textContent = `Pending tasks: ${assignments.length - completed} · Progress: ${assignments.length ? Math.round(completed / assignments.length * 100) : 0}%`;
         const actions = document.createElement('div'); actions.className = 'project-card-actions';
         const view = document.createElement('button'); view.type = 'button'; view.textContent = 'View'; view.addEventListener('click', () => viewEmployeeProject(project.id)); actions.appendChild(view);
-        card.append(title, statement, deadline, team, work, actions); grid.appendChild(card);
+        card.append(title, statement, deadline, department, team, work, actions); grid.appendChild(card);
     });
 }
 
@@ -3220,11 +3293,105 @@ async function viewEmployeeProject(projectId) {
     if (!container) return;
     container.textContent = 'Loading project...'; showEmployeeProjectModal();
     const { data: project, error } = await supabaseClient.from('company_projects')
-        .select('id, project_name, problem_statement, description, deadline, project_members(employee_id, employee_profiles(full_name, email, role, experience_level, department_id, departments(name))), project_tasks(id, title, description, deadline, project_task_assignments(id, employee_id, status, completed_at))')
+        .select('id, project_name, problem_statement, description, deadline, department_id')
         .eq('id', projectId).maybeSingle();
-    if (error || !project) { console.error('PROJECT DETAILS LOAD ERROR:', error); container.textContent = 'Project details could not be loaded.'; return; }
+    if (error || !project) {
+        console.error('PROJECT DETAILS LOAD ERROR:', error);
+        container.textContent = `Project details could not be loaded.${error?.message ? ` ${error.message}` : ''}`;
+        return;
+    }
+
+    const [membersResult, tasksResult, departmentResult] = await Promise.all([
+        supabaseClient.from('project_members').select('employee_id').eq('project_id', projectId),
+        supabaseClient.from('project_tasks')
+            .select('id, title, description, deadline')
+            .eq('project_id', projectId)
+            .eq('status', 'open'),
+        project.department_id
+            ? supabaseClient.from('departments').select('id, name').eq('id', project.department_id).maybeSingle()
+            : Promise.resolve({ data: null, error: null })
+    ]);
+    if (membersResult.error || tasksResult.error) {
+        const detailError = membersResult.error || tasksResult.error;
+        console.error('PROJECT TEAM OR TASKS LOAD ERROR:', detailError);
+        container.textContent = `Project details could not be loaded. ${detailError.message}`;
+        return;
+    }
+
+    const memberIds = (membersResult.data || []).map(member => member.employee_id);
+    const projectTasks = tasksResult.data || [];
+    const taskIds = projectTasks.map(task => task.id);
+    const [employeesResult, assignmentsResult] = await Promise.all([
+        memberIds.length
+            ? supabaseClient.from('employee_profiles')
+                .select('id, full_name, email, role, experience_level, department_id')
+                .in('id', memberIds)
+            : Promise.resolve({ data: [], error: null }),
+        taskIds.length
+            ? supabaseClient.from('project_task_assignments')
+                .select('id, project_task_id, employee_id, status, completed_at')
+                .in('project_task_id', taskIds)
+            : Promise.resolve({ data: [], error: null })
+    ]);
+    if (employeesResult.error || assignmentsResult.error) {
+        const detailError = employeesResult.error || assignmentsResult.error;
+        console.error('PROJECT PEOPLE OR ASSIGNMENTS LOAD ERROR:', detailError);
+        container.textContent = `Project details could not be loaded. ${detailError.message}`;
+        return;
+    }
+
+    const employeesById = new Map((employeesResult.data || []).map(employee => [employee.id, employee]));
+    const assignmentsByTask = new Map();
+    (assignmentsResult.data || []).forEach(assignment => {
+        const assignedEmployee = employeesById.get(assignment.employee_id);
+        const entries = assignmentsByTask.get(assignment.project_task_id) || [];
+        entries.push({
+            ...assignment,
+            employee_profiles: assignedEmployee ? { full_name: assignedEmployee.full_name } : null
+        });
+        assignmentsByTask.set(assignment.project_task_id, entries);
+    });
+    project.project_members = memberIds.map(employee_id => ({
+        employee_id,
+        employee_profiles: employeesById.get(employee_id) || null
+    }));
+    project.project_tasks = projectTasks.map(task => ({
+        ...task,
+        project_task_assignments: assignmentsByTask.get(task.id) || []
+    }));
+    if (departmentResult.error) {
+        console.error('PROJECT DEPARTMENT LOAD ERROR:', departmentResult.error);
+    }
+    project.departments = { name: departmentResult.data?.name || '' };
+
     container.replaceChildren();
-    [['h2', project.project_name], ['h4', 'Problem statement'], ['p', project.problem_statement], ['h4', 'Description'], ['p', project.description || 'No description provided.'], ['h4', 'Deadline'], ['p', employeeProjectDateLabel(project.deadline)], ['h4', 'Team members']].forEach(([tag, value]) => { const element = document.createElement(tag); element.textContent = value; container.appendChild(element); });
+    const assignments = (project.project_tasks || []).flatMap(task => task.project_task_assignments || []);
+    const completedCount = assignments.filter(assignment => assignment.status === 'completed').length;
+    const progress = assignments.length ? Math.round(completedCount / assignments.length * 100) : 0;
+    const header = document.createElement('div');
+    header.className = 'employee-project-heading';
+    const eyebrow = document.createElement('p'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'PROJECT WORKSPACE';
+    const title = document.createElement('h2'); title.textContent = project.project_name;
+    const department = document.createElement('p'); department.className = 'project-card-meta'; department.textContent = project.departments?.name || 'Department not specified';
+    header.append(eyebrow, title, department);
+    container.appendChild(header);
+
+    const summary = document.createElement('div');
+    summary.className = 'employee-project-summary';
+    [
+        ['Team members', String(project.project_members?.length || 0)],
+        ['Tasks', String(project.project_tasks?.length || 0)],
+        ['Completed', `${completedCount} / ${assignments.length}`],
+        ['Progress', `${progress}%`],
+        ['Deadline', employeeProjectDateLabel(project.deadline)]
+    ].forEach(([label, value]) => {
+        const card = document.createElement('div'); card.className = 'employee-project-summary-card';
+        const caption = document.createElement('span'); caption.textContent = label;
+        const figure = document.createElement('strong'); figure.textContent = value;
+        card.append(caption, figure); summary.appendChild(card);
+    });
+    container.appendChild(summary);
+    [['h4', 'Problem statement'], ['p', project.problem_statement], ['h4', 'Description'], ['p', project.description || 'No description provided.'], ['h4', 'Team members']].forEach(([tag, value]) => { const element = document.createElement(tag); element.textContent = value; container.appendChild(element); });
     const members = document.createElement('div'); members.className = 'project-details-members';
     (project.project_members || []).forEach(member => {
         const employee = member.employee_profiles; if (!employee) return;
@@ -3243,31 +3410,113 @@ async function viewEmployeeProject(projectId) {
     container.appendChild(members);
     const taskHeading = document.createElement('h4'); taskHeading.textContent = 'Project tasks'; container.appendChild(taskHeading);
     const tasks = project.project_tasks || [];
+    const currentEmployee = await getCurrentEmployeeProjectProfile();
     if (!tasks.length) {
-        const empty = document.createElement('p'); empty.textContent = 'No project tasks are assigned to you yet.'; container.appendChild(empty);
+        const empty = document.createElement('p'); empty.textContent = 'No tasks have been generated for this project yet.'; container.appendChild(empty);
     }
     tasks.forEach(task => {
-        const assignment = (task.project_task_assignments || [])[0];
-        if (!assignment) return;
-        const item = document.createElement('div'); item.className = 'project-details-member';
-        const details = document.createElement('div');
-        const title = document.createElement('strong'); title.textContent = task.title;
-        const description = document.createElement('small'); description.textContent = task.description || 'No instructions provided.';
-        const status = document.createElement('small'); status.textContent = 'Status: ' + assignment.status;
-        const button = document.createElement('button'); button.type = 'button'; button.textContent = assignment.status === 'completed' ? 'Mark pending' : 'Mark completed';
-        button.addEventListener('click', async () => {
-            button.disabled = true;
-            const nextStatus = assignment.status === 'completed' ? 'pending' : 'completed';
-            const { error } = await supabaseClient.from('project_task_assignments').update({
-                status: nextStatus, completed_at: nextStatus === 'completed' ? new Date().toISOString() : null
-            }).eq('id', assignment.id);
-            if (error) { alert(error.message); button.disabled = false; return; }
-            await viewEmployeeProject(project.id);
-            await loadEmployeeProjects();
+        const taskCard = document.createElement('article');
+        taskCard.className = 'employee-project-task';
+        const taskTitle = document.createElement('strong'); taskTitle.textContent = task.title;
+        const description = document.createElement('p'); description.textContent = task.description || 'No instructions provided.';
+        taskCard.append(taskTitle, description);
+        (task.project_task_assignments || []).forEach(assignment => {
+            const row = document.createElement('div'); row.className = 'employee-project-assignment';
+            const owner = document.createElement('span'); owner.textContent = assignment.employee_profiles?.full_name || 'Team member';
+            const status = document.createElement('span'); status.className = `project-task-status status-${assignment.status}`;
+            status.textContent = assignment.status.replace('_', ' ');
+            row.append(owner, status);
+            if (assignment.employee_id === currentEmployee?.id) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'project-task-toggle';
+                button.textContent = assignment.status === 'completed' ? 'Mark pending' : 'Mark complete';
+                button.addEventListener('click', async () => {
+                    button.disabled = true;
+                    const nextStatus = assignment.status === 'completed' ? 'pending' : 'completed';
+                    const { error: updateError } = await supabaseClient.from('project_task_assignments').update({
+                        status: nextStatus, completed_at: nextStatus === 'completed' ? new Date().toISOString() : null
+                    }).eq('id', assignment.id);
+                    if (updateError) {
+                        console.error('PROJECT TASK UPDATE ERROR:', updateError);
+                        button.disabled = false;
+                        status.textContent = `Could not update: ${updateError.message}`;
+                        return;
+                    }
+                    await viewEmployeeProject(project.id);
+                    await loadEmployeeProjects();
+                });
+                row.appendChild(button);
+            }
+            taskCard.appendChild(row);
         });
-        details.append(title, document.createElement('br'), description, document.createElement('br'), status, document.createElement('br'), button);
-        item.append(details); container.appendChild(item);
+        container.appendChild(taskCard);
     });
+    renderEmployeeProjectFiles(container, project.id);
+}
+
+function renderEmployeeProjectFiles(container, projectId) {
+    const section = document.createElement('section');
+    section.className = 'project-files';
+    const heading = document.createElement('h3'); heading.textContent = 'Shared project files';
+    const help = document.createElement('p'); help.textContent = 'Upload screenshots, documents, and other files for everyone on this project.';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/zip,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    input.setAttribute('aria-label', 'Upload a shared project file');
+    const status = document.createElement('p'); status.className = 'project-files-status';
+    const list = document.createElement('div'); list.className = 'project-files-list';
+    section.append(heading, help, input, status, list);
+    container.appendChild(section);
+
+    const refresh = async () => {
+        list.replaceChildren();
+        const { data, error } = await supabaseClient.storage.from('project-files')
+            .list(projectId, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+        if (error) {
+            status.textContent = `Shared files could not be loaded: ${error.message}`;
+            return;
+        }
+        status.textContent = data.length ? '' : 'No shared files yet.';
+        for (const file of data.filter(item => item.id)) {
+            const { data: signed, error: urlError } = await supabaseClient.storage.from('project-files')
+                .createSignedUrl(`${projectId}/${file.name}`, 3600);
+            if (urlError) {
+                console.error('PROJECT FILE LINK ERROR:', urlError);
+                status.textContent = 'Some shared files could not be opened. Refresh the project and try again.';
+                continue;
+            }
+            const link = document.createElement('a');
+            link.href = signed.signedUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = file.name.replace(/^\d+-[a-f0-9-]+-/, '');
+            list.appendChild(link);
+        }
+    };
+
+    input.addEventListener('change', async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (file.size > 25 * 1024 * 1024) {
+            status.textContent = 'Files must be 25 MB or smaller.';
+            input.value = '';
+            return;
+        }
+        status.textContent = 'Uploading shared file...';
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${projectId}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const { error } = await supabaseClient.storage.from('project-files').upload(path, file, { upsert: false });
+        if (error) {
+            status.textContent = `File upload failed: ${error.message}`;
+            input.value = '';
+            return;
+        }
+        input.value = '';
+        status.textContent = 'File uploaded.';
+        await refresh();
+    });
+    refresh();
 }
 
 document.getElementById('closeEmployeeProjectDetails')?.addEventListener('click', closeEmployeeProjectModal);
